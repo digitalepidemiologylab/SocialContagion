@@ -18,7 +18,8 @@ public class Simulations {
     Graph<Person, Connection> g;
     Graph<Person, Connection> SusceptibleGraph;
     Vector<Graph<Person, Connection>> MultiGraphs;
-    int currentTimestep = 0;
+    int socialTimestep = 0;
+    int biologicalTimestep = 0;
     Person[] people;
     Random random = new Random();
     boolean opinionIsSpreading = false;
@@ -29,17 +30,47 @@ public class Simulations {
     ArrayList<Double> avgClusterDistances;
     int[] clusterSizeSquared;
     int[] clusterSize;
-    int simCount = 1000;
-
-
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
         simulation.run();
     }
 
+    public void run(){
+        this.initGraph();
+        this.runSocialTimesteps();
+        this.removeVaccinated();
+        this.runBiologicalTimesteps();
+        this.clusters();
+    }
+
+    private void runSocialTimesteps() {
+        while(true) {
+            if (this.socialTimestep==0) this.opinionIsSpreading = true;
+            if (this.opinionIsSpreading) {
+                this.generalExposure();
+                this.socialContagion();
+                if (!this.opinionIsSpreading) {
+                    if (this.getFractionOfNegativeVaccinationOpinion() == 0) break;
+                    this.vaccinate();
+                }
+            }
+            this.socialTimestep++;
+            if (!this.opinionIsSpreading) break;
+        }
+    }
+
+    private void runBiologicalTimesteps() {
+        diseaseIsSpreading = true;
+        infectRandomIndexCase();
+        while(true) {
+            biologicalContagion();
+            this.biologicalTimestep++;
+            if (!diseaseIsSpreading) break;
+        }
+    }
+
     private double getFractionHealthStatus(int status) {
-        // function that obtains health status count of the network, requires user choice of status (susceptible, infected, resistant)
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int counter = 0;
         for (int i = 0; i < numberOfPeople; i++) {
@@ -51,8 +82,7 @@ public class Simulations {
     }
 
 
-    private Person infectRandomIndexCase() {
-        // function that infects a random index case.  If random = resistant...infect another
+    private void infectRandomIndexCase() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         Person indexCase;
         do {
@@ -60,23 +90,18 @@ public class Simulations {
         }
         while (!indexCase.isSusceptible());
         this.infectPerson(indexCase);
-        return indexCase;
     }
 
-
     private void vaccinate() {
-        // function that vaccinates all who are '+' opinion (note, everyone starts '+')
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         for (int i = 0; i < numberOfPeople; i++) {
             if (this.people[i].getVaccinationOpinion().equals("+")) {
-                this.people[i].setHealthStatus(Person.RESISTANT);
+                this.people[i].setHealthStatus(Person.VACCINATED);
             }
         }
     }
 
-
     private double getFractionOfNegativeVaccinationOpinion() {
-        // function that gets the fraction of negative vaccination opinion people in the network
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int numberOfNegativeOpinions = 0;
         for (int i = 0; i < numberOfPeople; i++) {
@@ -87,7 +112,6 @@ public class Simulations {
         return (double)numberOfNegativeOpinions / numberOfPeople;
     }
 
-
     private void generalExposure() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         double rge = SimulationSettings.getInstance().getRge();
@@ -96,7 +120,7 @@ public class Simulations {
             if (numberOfPeopleToExpose < 1) {
                 if (random.nextDouble() > numberOfPeopleToExpose) break;
             }
-            this.people[random.nextInt(numberOfPeople)].increaseGeneralExposures("generalExposure_t="+this.currentTimestep);
+            this.people[random.nextInt(numberOfPeople)].increaseGeneralExposures("generalExposure_t="+this.socialTimestep);
             numberOfPeopleToExpose--;
         }
     }
@@ -115,13 +139,11 @@ public class Simulations {
                 }
             }
         }
-        // if exposures > threshold then set temp flag
         for (Person person:this.g.getVertices()) {
             if (person.getNumberOfExposures() >= T) {
                 person.setTempValue(true);
             }
         }
-        // assign new opinions according to temp value and reset
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
                 this.setAntiVaccinationOpinion(person);
@@ -131,7 +153,6 @@ public class Simulations {
     }
 
     private void setAntiVaccinationOpinion(Person person) {
-        // function that runs when someone goes from '+' -> '-'...primarily to make sure it doesn't overshoot the desired vaccination level
         if (this.opinionIsSpreading) {
             if (person.getVaccinationOpinion().equals("-")) return; // no need to overwrite and mistakenly count this as an additional anti vaccine opinion
             person.setVaccinationOpinion("-");
@@ -143,9 +164,7 @@ public class Simulations {
     }
 
     private void biologicalContagion() {
-        //run biological contagion (infection & recovery)
-        this.infection();
-        this.recovery();
+        this.infect_recover();
         if (this.getFractionHealthStatus(Person.INFECTED) == 0) this.diseaseIsSpreading = false;
     }
 
@@ -159,8 +178,7 @@ public class Simulations {
         }
     }
 
-
-    private void infection() {
+    private void infect_recover() {
         double infectionRate = SimulationSettings.getInstance().getInfectionRate();
         for (Person person:this.g.getVertices()) {
             if (!person.isSusceptible()) continue;
@@ -173,10 +191,10 @@ public class Simulations {
             double probabilityOfInfection = 1.0 - Math.pow(1.0 - infectionRate,numberOfInfectedNeighbours);
             if (this.random.nextDouble() < probabilityOfInfection) {
                 person.setTempValue(true);
-
             }
         }
-        // assign health status according to temp value and reset
+        //recovery goes here to ensure that individuals cannot recover IMMEDIATELY
+        this.recovery();
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
                 this.infectPerson(person);
@@ -184,8 +202,6 @@ public class Simulations {
             }
         }
     }
-
-
 
     private void infectPerson(Person person) {
         if (!this.diseaseIsSpreading) return;
@@ -196,17 +212,11 @@ public class Simulations {
         }
     }
 
-
-
-
     private void initGraph() {
-
         Set components;
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int k = SimulationSettings.getInstance().getK();
         this.people = new Person[numberOfPeople];
-
-
         do {
             this.g = new SparseGraph<Person, Connection>();
             for (int i = 0; i < numberOfPeople; i++) {
@@ -214,8 +224,6 @@ public class Simulations {
                 this.people[i] = person;
                 this.g.addVertex(person);
             }
-
-
             for (int i = 0; i < numberOfPeople; i++) {
                 for (int ii = 0; ii < k; ii++) {
                     int diff = ii/2 + 1;
@@ -226,7 +234,6 @@ public class Simulations {
                     this.g.addEdge(new Connection(),this.people[i],this.people[newIndex]);
                 }
             }
-
             for (Connection edge:this.g.getEdges()) {
                 if (this.random.nextDouble() < SimulationSettings.getInstance().getRewiringProbability()) {
                     Person source = this.g.getEndpoints(edge).getFirst();
@@ -246,41 +253,15 @@ public class Simulations {
 
     }
 
-    public void run(){
-        this.initGraph();
-        this.socialContagionSimulation();
-        this.removeResistant();
-        this.makeClusters();
-        //this.plotGraph();
-        this.measureClusters();
-        this.outbreakSim();
-        this.comparePredicted();
-
-    }
-
-
-    private void socialContagionSimulation(){
-        while(true){
-            if (currentTimestep==0) this.opinionIsSpreading = true;
-
-            if (this.opinionIsSpreading) {
-                this.generalExposure();
-                this.socialContagion();
-
-                if (!this.opinionIsSpreading) {
-                    if (this.getFractionOfNegativeVaccinationOpinion() == 0) break;
-                    this.vaccinate();
-                }
-            }
-            this.currentTimestep++;
-            if(!this.opinionIsSpreading) break;
-        }
-    }
-
-    private void removeResistant() {
+    private void removeVaccinated() {
         for (int i = 0; i < SimulationSettings.getInstance().getNumberOfPeople(); i++) {
-            if (people[i].isResistant()) this.g.removeVertex(people[i]);
+            if (people[i].isVaccinated()) this.g.removeVertex(people[i]);
         }
+    }
+
+    private void clusters() {
+        this.makeClusters();
+        this.measureClusters();
     }
 
     private void makeClusters() {
@@ -309,22 +290,18 @@ public class Simulations {
         this.avgClusterDistances = new ArrayList<Double>();
         this.clusterSizeSquared = new int[42];
         this.clusterSize = new int[42];
-
         for (Graph<Person, Connection> SusceptibleGraph:MultiGraphs) {
             graphCounter++;
             double distanceSum = 0;
             for (Person person:SusceptibleGraph.getVertices()) {
                 Transformer<Person, Double> distances = DistanceStatistics.averageDistances(SusceptibleGraph);
                 distanceSum = distanceSum + (1/distances.transform(person));
-
             }
             clusterSize[graphCounter] = SusceptibleGraph.getVertexCount();
             clusterSizeSquared[graphCounter] = (SusceptibleGraph.getVertexCount() * SusceptibleGraph.getVertexCount());
-
-
             double distanceAverage = distanceSum/SusceptibleGraph.getVertexCount();
             avgClusterDistances.add(distanceAverage);
-            //System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
+            System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
         }
     }
 
@@ -344,104 +321,18 @@ public class Simulations {
         for (int i = 0; i < this.clusterSizeSquared.length; i++) {
             squaredSum = squaredSum + this.clusterSizeSquared[i];
         }
-
         int sizeSum = 0;
         for (int i = 0; i < this.clusterSize.length; i++) {
             sizeSum = sizeSum + this.clusterSize[i];
         }
-
         this.predictedOutbreakSize = squaredSum/sizeSum;
-
         return (int)this.predictedOutbreakSize;
-    }
-
-    private void microInfection(Graph<Person,Connection> SusceptibleGraph) {
-        double infectionRate = SimulationSettings.getInstance().getInfectionRate();
-        for (Person person:SusceptibleGraph.getVertices()) {
-            if (!person.isSusceptible()) continue;
-            int numberOfInfectedNeighbours = 0;
-            for (Person neighbour:SusceptibleGraph.getNeighbors(person)) {
-                if (neighbour.isInfected()) {
-                    numberOfInfectedNeighbours++;
-                }
-            }
-            double probabilityOfInfection = 1.0 - Math.pow(1.0 - infectionRate,numberOfInfectedNeighbours);
-            if (this.random.nextDouble() < probabilityOfInfection) {
-                person.setTempValue(true);
-
-            }
-        }
-        // assign health status according to temp value and reset
-        for (Person person:SusceptibleGraph.getVertices()) {
-            if (person.getTempValue()) {
-                this.infectPerson(person);
-                person.setTempValue(false);
-            }
-        }
-    }
-
-    private void microRecovery() {
-        int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
-        double recoveryRate = SimulationSettings.getInstance().getRecoveryRate();
-        for (int i = 0; i < numberOfPeople; i++) {
-            if (this.people[i].isInfected()) {
-                if (this.random.nextDouble() < recoveryRate) this.people[i].setHealthStatus(Person.RESISTANT);
-            }
-        }
-    }
-
-    private void microOutbreak() {
-        this.diseaseIsSpreading = true;
-        Person indexCase = infectRandomIndexCase();
-
-        for (Graph<Person, Connection> SusceptibleGraph:MultiGraphs) {
-            if (!SusceptibleGraph.containsVertex(indexCase)) continue;
-            else {
-                while(this.diseaseIsSpreading == true) {
-                    microInfection(SusceptibleGraph);
-                    microRecovery();
-                    if (this.getFractionHealthStatus(Person.INFECTED) == 0) this.diseaseIsSpreading = false;
-                    if (!this.diseaseIsSpreading) break;
-                }
-            }
-        }
-    }
-
-    private int outbreakSim() {
-        int[] simOutbreakSize = new int[simCount];
-
-        for (int simCounter = 0; simCounter < simCount; simCounter++) {
-            this.outbreakSize = 0;
-
-
-            microOutbreak();
-            simOutbreakSize[simCounter] = this.getOutbreakSize();
-            //System.out.println(this.getOutbreakSize());
-            resetClusters();
-        }
-
-        int outbreakSum = 0;
-        for (int i = 0; i < simCount; i++) {
-            outbreakSum = outbreakSum + simOutbreakSize[i];
-        }
-        return outbreakSum;
-    }
-
-    private void comparePredicted(){
-
-        double simulatedAverageOutbreakSize = outbreakSim()/simCount;
-        double predictedAverageOutbreakSize = predictOutbreakSize();
-        double ratio = predictedAverageOutbreakSize/simulatedAverageOutbreakSize;
-
-        System.out.println(getMaxDistance() + "," + ratio + ";");
-
     }
 
     private void resetClusters() {
         for (int person = 0; person < SimulationSettings.getInstance().getNumberOfPeople(); person++) {
             if (people[person].getVaccinationOpinion().equals("-")) people[person].setHealthStatus(Person.SUSCEPTIBLE);
         }
-
     }
 
     public int getOutbreakSize() {
@@ -463,7 +354,5 @@ public class Simulations {
         frame.pack();
         frame.setVisible(true);
     }
-
-
 }
 

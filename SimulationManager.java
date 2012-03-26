@@ -2,8 +2,6 @@ package com.salathegroup.socialcontagion;
 
 public class SimulationManager {
 
-
-
     public static void main(String[] args) {
         SimulationManager sm = new SimulationManager();
         sm.runOutbreaks_onlySusceptible();
@@ -17,26 +15,11 @@ public class SimulationManager {
         int numberOfSimulations = 500;
         int[] predictedOutbreakSize = new int[numberOfSimulations];
 
-
         for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
             Simulations sim = new Simulations();
             sim.run();
         }
     }
-
-    private void thresholds() {
-        int numberOfSimulations = 500;
-        int[] predictedOutbreakSize = new int[numberOfSimulations];
-        for (int i = 1; i < 5; i++){
-
-        }
-
-        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
-            Simulations sim = new Simulations();
-            sim.run();
-        }
-    }
-
 
     private void runOutbreaks_vs_Omega() {
         int numberOfSimulations = 500;
@@ -82,7 +65,6 @@ public class SimulationManager {
                     if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
                 }
                 System.out.println(vaccinationCoverage + "\t" + (double)numberOfOutbreaks/numberOfSimulations);
-
             }
         }
     }
@@ -143,8 +125,5 @@ public class SimulationManager {
                 System.out.println(vaccinationCoverage + "\t" + outbreakProbability / omega0[i]);
             }
         }
-
-
     }
-
 }

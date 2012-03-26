@@ -14,6 +14,7 @@ public class Person {
     public static final int SUSCEPTIBLE = 1;
     public static final int INFECTED = 2;
     public static final int RESISTANT = 3;
+    public static final int VACCINATED = 4;
 
 
     public Person(String id, String vaccinationOpinion) {
@@ -65,6 +66,10 @@ public class Person {
 
     public boolean isResistant() {
         return this.healthStatus==Person.RESISTANT;
+    }
+    
+    public boolean isVaccinated() {
+        return this.healthStatus==Person.VACCINATED;
     }
 
 }
