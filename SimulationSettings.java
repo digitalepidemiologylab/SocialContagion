@@ -1,4 +1,4 @@
-package com.SalatheGroup.SocialContagion;
+package com.salathegroup.socialcontagion;
 
 public class SimulationSettings {
 

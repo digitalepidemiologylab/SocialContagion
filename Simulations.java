@@ -1,8 +1,5 @@
-package com.SalatheGroup.SocialContagion;
+package com.salathegroup.socialcontagion;
 
-import com.SalatheGroup.SocialContagion.Connection;
-import com.SalatheGroup.SocialContagion.Person;
-import com.SalatheGroup.SocialContagion.SimulationSettings;
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
 import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
