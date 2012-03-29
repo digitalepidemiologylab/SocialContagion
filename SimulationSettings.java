@@ -5,15 +5,15 @@ public class SimulationSettings {
     private static SimulationSettings ourInstance = new SimulationSettings();
 
 
-    private int numberOfPeople = 500;
+    private int numberOfPeople = 2000;
     private int k = 10;
     private double rewiringProbability = 0.02;
     private double rge = 0.01;
     private int T = 2;
     private double omega = 1;
-    private double minimumLevelOfNegativeVaccinationOpinion = 0.2;
-    private double infectionRate = 1;
-    private double recoveryRate = 0.01;
+    private double minimumLevelOfNegativeVaccinationOpinion = 0.5;
+    private double infectionRate = 0.1;
+    private double recoveryRate = 0.1;
     private int outbreakSizeToStopSimulation = Integer.MAX_VALUE; // if this is max, the simulation will run its entire course
 
 

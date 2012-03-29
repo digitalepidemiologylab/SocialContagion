@@ -1,23 +1,177 @@
 package com.salathegroup.socialcontagion;
 
+import java.util.ArrayList;
+
+
 public class SimulationManager {
+
+
 
     public static void main(String[] args) {
         SimulationManager sm = new SimulationManager();
-        sm.runOutbreaks_onlySusceptible();
+        sm.heatmaps();
+        // sm.rewire_clusters_outbreaks();
+        // sm.threshold_clusters_outbreaks();
+        // sm.rge_clusters_outbreaks();
+        // sm.runOutbreaks_onlySusceptible();
         // sm.runOutbreaks_vs_exposureRate();
         // sm.runOutbreaks_vs_VaccineCoverage_vs_Threshold();
         // sm.runOutbreaksVsVaccinationCoverage();
         // sm.runOutbreaksLikelihoodVsVaccinationCoverage();
     }
 
-    private void runOutbreaks_onlySusceptible() {
-        int numberOfSimulations = 500;
-        int[] predictedOutbreakSize = new int[numberOfSimulations];
+    private void heatmaps() {
 
-        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
-            Simulations sim = new Simulations();
-            sim.run();
+        ArrayList<Integer> ClusterCount;
+        ArrayList<Double> OutbreakSize;
+        int numberOfSimulations = 100;
+
+        for (int omegaCounter = 0; omegaCounter < 10; omegaCounter++) {
+            double omega = 0.05 + (0.05 * omegaCounter);
+            SimulationSettings.getInstance().setOmega(omega);
+
+            for (int rgeCounter = 0; rgeCounter < 10; rgeCounter++) {
+                double rge = 0.05 + (0.05*rgeCounter);
+                SimulationSettings.getInstance().setRge(rge);
+                ClusterCount = new ArrayList<Integer>();
+                OutbreakSize = new ArrayList<Double>();
+
+                for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+                    Simulations sim = new Simulations();
+                    sim.run();
+
+                    ClusterCount.add(sim.getClusterCount());
+                    OutbreakSize.add(sim.predictOutbreakSize());
+
+                }
+
+                int cSum = 0;
+                double oSum = 0;
+                for (int i = 0; i < numberOfSimulations; i++) {
+                    cSum = cSum + ClusterCount.get(i);
+                    oSum = oSum + OutbreakSize.get(i);
+                }
+
+                double cAvg = (double)cSum/numberOfSimulations;
+                double oAvg = oSum/numberOfSimulations;
+
+                System.out.println(omega + "," + rge + "," + cAvg + "," + oAvg);
+            }
+        }
+    }
+
+
+    private void rewire_clusters_outbreaks() {
+
+        ArrayList<Integer> ClusterCount;
+        ArrayList<Double> OutbreakSize;
+        int numberOfSimulations = 500;
+        int rewireRange = 400;
+        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
+
+
+        for (int rewireCounter = 0; rewireCounter < rewireRange; rewireCounter++) {
+            double rewiringProbability = 0.101 + (0.001 * rewireCounter);
+            SimulationSettings.getInstance().setRewiringProbability(rewiringProbability);
+            ClusterCount = new ArrayList<Integer>();
+            OutbreakSize = new ArrayList<Double>();
+
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+                Simulations sim = new Simulations();
+                sim.run();
+
+                ClusterCount.add(sim.getClusterCount());
+                OutbreakSize.add(sim.predictOutbreakSize());
+            }
+            int cSum = 0;
+            double oSum = 0;
+            for (int i = 0; i < numberOfSimulations; i++) {
+                cSum = cSum + ClusterCount.get(i);
+                oSum = oSum + OutbreakSize.get(i);
+            }
+
+            double cAvg = (double)cSum/numberOfSimulations;
+            double oAvg = oSum/numberOfSimulations;
+
+            System.out.println(rewiringProbability + "," + cAvg + "," + oAvg);
+
+        }
+    }
+
+    private void threshold_clusters_outbreaks() {
+
+        ArrayList<Integer> ClusterCount;
+        ArrayList<Double> OutbreakSize;
+        int numberOfSimulations = 500;
+        int thresholdRange = 11;
+        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
+
+
+        for (int threshold = 1; threshold < thresholdRange; threshold++) {
+            SimulationSettings.getInstance().setT(threshold);
+            ClusterCount = new ArrayList<Integer>();
+            OutbreakSize = new ArrayList<Double>();
+
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+                Simulations sim = new Simulations();
+                sim.run();
+
+                ClusterCount.add(sim.getClusterCount());
+                OutbreakSize.add(sim.predictOutbreakSize());
+            }
+            int cSum = 0;
+            double oSum = 0;
+            for (int i = 0; i < numberOfSimulations; i++) {
+                cSum = cSum + ClusterCount.get(i);
+                oSum = oSum + OutbreakSize.get(i);
+            }
+
+            double cAvg = (double)cSum/numberOfSimulations;
+            double oAvg = oSum/numberOfSimulations;
+
+            System.out.println(threshold + "," + cAvg + "," + oAvg);
+
+        }
+    }
+
+    private void rge_clusters_outbreaks() {
+
+        ArrayList<Integer> ClusterCount;
+        ArrayList<Double> OutbreakSize;
+        int numberOfSimulations = 500;
+        int rgeRange = 100;
+        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
+
+
+        for (int rgeCounter = 0; rgeCounter < rgeRange; rgeCounter++) {
+            double rge = 0.01 + (0.01*rgeCounter);
+            SimulationSettings.getInstance().setRge(rge);
+            ClusterCount = new ArrayList<Integer>();
+            OutbreakSize = new ArrayList<Double>();
+
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+                Simulations sim = new Simulations();
+                sim.run();
+
+                ClusterCount.add(sim.getClusterCount());
+                OutbreakSize.add(sim.predictOutbreakSize());
+
+            }
+
+            int cSum = 0;
+            double oSum = 0;
+            for (int i = 0; i < numberOfSimulations; i++) {
+                cSum = cSum + ClusterCount.get(i);
+                oSum = oSum + OutbreakSize.get(i);
+            }
+
+            double cAvg = (double)cSum/numberOfSimulations;
+            double oAvg = oSum/numberOfSimulations;
+
+            System.out.println(cAvg + "," + oAvg);
+
+
+
         }
     }
 

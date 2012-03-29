@@ -27,9 +27,9 @@ public class Simulations {
     int outbreakSize = 0;
     int numberOfAntiVaccineOpinions = 0;
     double predictedOutbreakSize = 0;
-    ArrayList<Double> avgClusterDistances;
     int[] clusterSizeSquared;
     int[] clusterSize;
+    ArrayList<Double> avgClusterDistances;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -40,9 +40,9 @@ public class Simulations {
         this.initGraph();
         this.runSocialTimesteps();
         this.removeVaccinated();
-        this.runBiologicalTimesteps();
         this.clusters();
     }
+
 
     private void runSocialTimesteps() {
         while(true) {
@@ -195,6 +195,7 @@ public class Simulations {
         }
         //recovery goes here to ensure that individuals cannot recover IMMEDIATELY
         this.recovery();
+
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
                 this.infectPerson(person);
@@ -262,13 +263,13 @@ public class Simulations {
     private void clusters() {
         this.makeClusters();
         this.measureClusters();
+
     }
 
     private void makeClusters() {
         Set negativeClusters;
         WeakComponentClusterer wcc = new WeakComponentClusterer();
         negativeClusters = wcc.transform(this.g);
-
         MultiGraphs = new Vector<Graph<Person, Connection>>();
         for (Object clusterObject:negativeClusters)  {
             Set cluster = (Set)clusterObject;
@@ -288,8 +289,8 @@ public class Simulations {
     private void measureClusters(){
         int graphCounter = 0;
         this.avgClusterDistances = new ArrayList<Double>();
-        this.clusterSizeSquared = new int[42];
-        this.clusterSize = new int[42];
+        this.clusterSizeSquared = new int[1000];
+        this.clusterSize = new int[1000];
         for (Graph<Person, Connection> SusceptibleGraph:MultiGraphs) {
             graphCounter++;
             double distanceSum = 0;
@@ -301,8 +302,12 @@ public class Simulations {
             clusterSizeSquared[graphCounter] = (SusceptibleGraph.getVertexCount() * SusceptibleGraph.getVertexCount());
             double distanceAverage = distanceSum/SusceptibleGraph.getVertexCount();
             avgClusterDistances.add(distanceAverage);
-            System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
+            //System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
         }
+    }
+    
+    public int getClusterCount() {
+        return MultiGraphs.size();
     }
 
     public double getMaxDistance(){
@@ -316,7 +321,7 @@ public class Simulations {
         return maxValue;
     }
 
-    private int predictOutbreakSize(){
+    public double predictOutbreakSize(){
         int squaredSum = 0;
         for (int i = 0; i < this.clusterSizeSquared.length; i++) {
             squaredSum = squaredSum + this.clusterSizeSquared[i];
@@ -326,10 +331,10 @@ public class Simulations {
             sizeSum = sizeSum + this.clusterSize[i];
         }
         this.predictedOutbreakSize = squaredSum/sizeSum;
-        return (int)this.predictedOutbreakSize;
+        return this.predictedOutbreakSize;
     }
 
-    private void resetClusters() {
+    private void resetNegativeOpinions() {
         for (int person = 0; person < SimulationSettings.getInstance().getNumberOfPeople(); person++) {
             if (people[person].getVaccinationOpinion().equals("-")) people[person].setHealthStatus(Person.SUSCEPTIBLE);
         }
