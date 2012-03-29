@@ -193,7 +193,8 @@ public class Simulations {
                 person.setTempValue(true);
             }
         }
-
+        //recovery goes here to ensure that individuals cannot recover IMMEDIATELY
+        this.recovery();
 
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
@@ -201,9 +202,6 @@ public class Simulations {
                 person.setTempValue(false);
             }
         }
-
-        //recovery goes here to ensure that individuals cannot recover IMMEDIATELY
-        this.recovery();
     }
 
     private void infectPerson(Person person) {
