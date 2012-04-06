@@ -1,15 +1,18 @@
 package com.salathegroup.socialcontagion;
 
+import java.io.*;
 import java.util.ArrayList;
+
 
 
 public class SimulationManager {
 
 
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
-        sm.heatmaps();
+        // sm.fileReading("/Users/ellscampbell/Documents/SocialContagion/rgeXomega,10sims,p0/clusters");
+         sm.betaVpredict();
+        // sm.heatmaps();
         // sm.rewire_clusters_outbreaks();
         // sm.threshold_clusters_outbreaks();
         // sm.rge_clusters_outbreaks();
@@ -20,46 +23,91 @@ public class SimulationManager {
         // sm.runOutbreaksLikelihoodVsVaccinationCoverage();
     }
 
-    private void heatmaps() {
-
-        ArrayList<Integer> ClusterCount;
-        ArrayList<Double> OutbreakSize;
+    public void betaVpredict() {
         int numberOfSimulations = 100;
+        SimulationSettings.getInstance().setOmega(0.01);
+        SimulationSettings.getInstance().setRge(0.001);
+        
+        System.out.println(SimulationSettings.getInstance().getRewiringProbability()+ "," + "SC.01 // GE.001") ;
+        System.out.println("Infection Rate" + ", " + "Simulated : Predicted Ratio" + ", " + "Largest Cluster Distance" + "," + "%GEN"+ "," + "%PEER"+ "," + "%MIXED");
 
-        for (int omegaCounter = 0; omegaCounter < 10; omegaCounter++) {
-            double omega = 0.05 + (0.05 * omegaCounter);
-            SimulationSettings.getInstance().setOmega(omega);
+        for (int i = 0; i < 10; i++) {
+            double beta = 0.1 + (i * 0.1);
+            SimulationSettings.getInstance().setInfectionRate(beta);
 
-            for (int rgeCounter = 0; rgeCounter < 10; rgeCounter++) {
-                double rge = 0.05 + (0.05*rgeCounter);
-                SimulationSettings.getInstance().setRge(rge);
-                ClusterCount = new ArrayList<Integer>();
-                OutbreakSize = new ArrayList<Double>();
-
-                for (int simCount = 0; simCount < numberOfSimulations; simCount++){
-                    Simulations sim = new Simulations();
-                    sim.run();
-
-                    ClusterCount.add(sim.getClusterCount());
-                    OutbreakSize.add(sim.predictOutbreakSize());
-
-                }
-
-                int cSum = 0;
-                double oSum = 0;
-                for (int i = 0; i < numberOfSimulations; i++) {
-                    cSum = cSum + ClusterCount.get(i);
-                    oSum = oSum + OutbreakSize.get(i);
-                }
-
-                double cAvg = (double)cSum/numberOfSimulations;
-                double oAvg = oSum/numberOfSimulations;
-
-                System.out.println(omega + "," + rge + "," + cAvg + "," + oAvg);
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+                Simulations sim = new Simulations();
+                sim.predictVsimulate();
             }
         }
     }
 
+    private void heatmaps() {
+        int numberOfSimulations = 10;
+        int steps = 10;
+        ArrayList<double[][]> Outbreaks = new ArrayList<double[][]>();
+        ArrayList<int[][]> Clusters = new ArrayList<int[][]>();
+
+        for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+            double outbreaks_heatmap[][] = new double[10][10];
+            int clusters_heatmap[][] = new int[10][10];
+            System.out.println(simCount);
+
+            double omegaMax = 0.02;
+            double omegaStart = 0.0001;
+            double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1))) ;
+            double rgeMax = 0.01;
+            double rgeStart = 0.0001;
+            double rgeSteps = Math.pow(rgeMax/rgeStart, (1.0/(steps-1))) ;
+
+            for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
+                double omega = omegaStart * Math.pow(omegaSteps,omegaCounter);
+                SimulationSettings.getInstance().setOmega(omega);
+
+                for (int rgeCounter = 0; rgeCounter < steps; rgeCounter++) {
+                    double rge = rgeStart * Math.pow(rgeSteps,rgeCounter);
+                    SimulationSettings.getInstance().setRge(rge);
+
+                    Simulations sim = new Simulations();
+                    sim.run();
+
+                    outbreaks_heatmap[omegaCounter][rgeCounter] = sim.predictOutbreakSize();
+                    clusters_heatmap[omegaCounter][rgeCounter] = sim.getClusterCount();
+
+                }
+            }
+            Outbreaks.add(outbreaks_heatmap);
+            Clusters.add(clusters_heatmap);
+        }
+
+        for (int simulation = 0; simulation < numberOfSimulations; simulation++) {
+            String outbreaksFilename = "Outbreaks" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
+            PrintWriter out = null;
+            try {
+                out = new PrintWriter(new java.io.FileWriter(outbreaksFilename));
+            } catch (IOException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+            for (int i = 0; i < 10; i++) {
+                out.println(Outbreaks.get(simulation)[i][0] + "," + Outbreaks.get(simulation)[i][1] + "," + Outbreaks.get(simulation)[i][2] + "," + Outbreaks.get(simulation)[i][3] + "," + Outbreaks.get(simulation)[i][4]+ "," + Outbreaks.get(simulation)[i][5]+ "," + Outbreaks.get(simulation)[i][6] + "," + Outbreaks.get(simulation)[i][7] + "," + Outbreaks.get(simulation)[i][8] + "," + Outbreaks.get(simulation)[i][9]) ;
+            }
+            out.close();
+        }
+
+        for (int simulation = 0; simulation < numberOfSimulations; simulation++) {
+            String clustersFilename = "Clusters" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
+            PrintWriter out = null;
+            try {
+                out = new PrintWriter(new java.io.FileWriter(clustersFilename));
+            } catch (IOException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+            for (int i = 0; i < 10; i++) {
+                out.println(Clusters.get(simulation)[i][0] + "," + Clusters.get(simulation)[i][1] + "," + Clusters.get(simulation)[i][2] + "," + Clusters.get(simulation)[i][3] + "," + Clusters.get(simulation)[i][4] + "," + Clusters.get(simulation)[i][5] + "," + Clusters.get(simulation)[i][6] + "," + Clusters.get(simulation)[i][7] + "," + Clusters.get(simulation)[i][8] + "," + Clusters.get(simulation)[i][9]) ;
+            }
+            out.close();
+        }
+    }
 
     private void rewire_clusters_outbreaks() {
 
@@ -203,7 +251,7 @@ public class SimulationManager {
         SimulationSettings.getInstance().setRge(0.01);
         SimulationSettings.getInstance().setOmega(0.15);
         int minOutbreakSize = 10;
-        
+
         for (int i = 1; i < 6; i++) {
             SimulationSettings.getInstance().setT(i);
             System.out.println(SimulationSettings.getInstance().getT());
@@ -279,5 +327,49 @@ public class SimulationManager {
                 System.out.println(vaccinationCoverage + "\t" + outbreakProbability / omega0[i]);
             }
         }
+    }
+
+    private void fileReading(String pathToDir) throws IOException {
+        File dir = new File(pathToDir);
+        File[] files = dir.listFiles();
+        double[][] finalValues = new double[10][10];
+        int fileCounter = 0;
+
+        for (File file:files) {
+            if (file.getName().startsWith(".")) continue;
+            if (file.isDirectory()) continue;
+
+            BufferedReader br = new FileReader(file.getAbsolutePath()).getBufferedReader();
+            String str;
+            int lineCounter = 0;
+
+            while ((str = br.readLine()) !=null) {
+                String[] values = str.split(",");
+
+                for (int i = 0; i < values.length; i++) {
+                    double value = Double.parseDouble(values[i]);
+                    finalValues[lineCounter][i] += value;
+                }
+                lineCounter++;
+            }
+            fileCounter++;
+        }
+
+
+        for (int i = 0; i < finalValues.length; i++) {
+            for (int ii = 0; ii < finalValues[i].length; ii++) {
+                finalValues[i][ii] /= fileCounter;
+            }
+        }
+
+        FileWriter fw = new FileWriter(pathToDir+"/results/averages.txt");
+        for (int i = 0; i < finalValues.length; i++) {
+            for (int ii = 0; ii < finalValues[i].length; ii++) {
+                if (ii > 0) fw.write(",");
+                fw.write(finalValues[i][ii]+"");
+            }
+            fw.writeln("");
+        }
+        fw.close();
     }
 }

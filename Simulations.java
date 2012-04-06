@@ -30,6 +30,10 @@ public class Simulations {
     int[] clusterSizeSquared;
     int[] clusterSize;
     ArrayList<Double> avgClusterDistances;
+    ArrayList<Integer> outbreakSizeList;
+    int peerAdopters = 0;
+    int generalAdopters = 0;
+    int mixedAdopters = 0;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -42,6 +46,7 @@ public class Simulations {
         this.removeVaccinated();
         this.clusters();
     }
+
 
 
     private void runSocialTimesteps() {
@@ -70,7 +75,37 @@ public class Simulations {
         }
     }
 
-    private double getFractionHealthStatus(int status) {
+    public void predictVsimulate() {
+        outbreakSizeList = new ArrayList<Integer>();
+        this.initGraph();
+        this.runSocialTimesteps();
+        this.removeVaccinated();
+        this.clusters();
+
+
+        int simCount = 100;
+        for (int i = 0; i < simCount; i++) {
+            this.outbreakSize = 0;
+            this.runBiologicalTimesteps();
+            outbreakSizeList.add(this.getOutbreakSize());
+            resetNegativeOpinions();
+        }
+
+        int outbreakSum = 0;
+        for (int i = 0; i < simCount; i++) {
+            outbreakSum = outbreakSum + outbreakSizeList.get(i);
+        }
+        double simulatedAverageOutbreak = outbreakSum/simCount;
+
+        double ratioSimulatedTOPredicted = simulatedAverageOutbreak/predictOutbreakSize();
+
+        System.out.println(SimulationSettings.getInstance().getInfectionRate() + "," + ratioSimulatedTOPredicted + "," + getMaxDistance() + "," + getFractionAdoptStatus(Person.GENERAL) + "," + getFractionAdoptStatus(Person.PEER) + "," + getFractionAdoptStatus(Person.MIXED) + "," + getFractionAdoptStatus(Person.NONE));
+
+
+    }
+
+
+    public double getFractionHealthStatus(int status) {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int counter = 0;
         for (int i = 0; i < numberOfPeople; i++) {
@@ -79,6 +114,17 @@ public class Simulations {
             if (status == Person.RESISTANT && this.people[i].isResistant()) counter++;
         }
         return (double)counter / numberOfPeople;
+    }
+
+    public double getFractionAdoptStatus(int adoptStatus) {
+        int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
+        int counter = 0;
+        for (int i = 0; i<numberOfPeople;i++) {
+            if (adoptStatus == Person.GENERAL && this.people[i].isGENERAL()) counter++;
+            if (adoptStatus == Person.PEER && this.people[i].isPEER()) counter++;
+            if (adoptStatus == Person.MIXED && this.people[i].isMIXED()) counter++;
+        }
+        return (double)counter/numberOfPeople;
     }
 
 
@@ -115,13 +161,17 @@ public class Simulations {
     private void generalExposure() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         double rge = SimulationSettings.getInstance().getRge();
+        int T = SimulationSettings.getInstance().getT();
         double numberOfPeopleToExpose = rge * numberOfPeople;
         while (numberOfPeopleToExpose > 0) {
             if (numberOfPeopleToExpose < 1) {
                 if (random.nextDouble() > numberOfPeopleToExpose) break;
             }
-            this.people[random.nextInt(numberOfPeople)].increaseGeneralExposures("generalExposure_t="+this.socialTimestep);
-            numberOfPeopleToExpose--;
+            Person nextExposure = this.people[random.nextInt(numberOfPeople)];
+            if (nextExposure.getNumberOfExposures() < T) {
+                nextExposure.increaseGeneralExposures("generalExposure_t="+this.socialTimestep);
+                numberOfPeopleToExpose--;
+            }
         }
     }
 
@@ -146,11 +196,37 @@ public class Simulations {
         }
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
+                this.determineAdoptionStatus(person);
                 this.setAntiVaccinationOpinion(person);
                 person.setTempValue(false);
             }
         }
     }
+
+    private void determineAdoptionStatus(Person person) {
+        int genCount = 0;
+        int peerCount = 0;
+
+        for (String exposure:person.getExposureHashSet()) {
+            if (exposure.startsWith("generalExposure_t=")) genCount++;
+            else peerCount++;
+        }
+
+        if (genCount == 2) {
+            this.generalAdopters++;
+            person.setAdoptStatus(Person.GENERAL);
+        }
+        if (peerCount == 2) {
+            this.peerAdopters++;
+            person.setAdoptStatus(Person.PEER);
+        }
+        if (genCount == 1 && peerCount == 1) {
+            this.mixedAdopters++;
+            person.setAdoptStatus(Person.MIXED);
+        }
+    }
+
+
 
     private void setAntiVaccinationOpinion(Person person) {
         if (this.opinionIsSpreading) {

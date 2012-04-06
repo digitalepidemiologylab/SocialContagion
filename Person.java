@@ -9,18 +9,25 @@ public class Person {
     private String vaccinationOpinion;
     private boolean tempValue = false;
     private int healthStatus;
+    private int adoptStatus;
     private HashSet<String> exposures;
 
     public static final int SUSCEPTIBLE = 1;
     public static final int INFECTED = 2;
     public static final int RESISTANT = 3;
     public static final int VACCINATED = 4;
+    
+    public static final int NONE = 1 ;
+    public static final int PEER = 2;
+    public static final int GENERAL = 3;
+    public static final int MIXED = 4 ;
 
 
     public Person(String id, String vaccinationOpinion) {
         this.id = id;
         this.vaccinationOpinion = vaccinationOpinion;
         this.healthStatus = Person.SUSCEPTIBLE;
+        this.adoptStatus = Person.NONE;
         this.exposures = new HashSet<String>();
     }
 
@@ -44,6 +51,10 @@ public class Person {
         return this.exposures.size();
     }
 
+    public HashSet<String> getExposureHashSet() {
+        return this.exposures;
+    }
+
     public void setTempValue(boolean b) {
         this.tempValue = b;
     }
@@ -54,6 +65,14 @@ public class Person {
 
     public void setHealthStatus(int healthStatus) {
         this.healthStatus = healthStatus;
+    }
+
+    public void setAdoptStatus(int adoptStatus) {
+        this.adoptStatus = adoptStatus;
+    }
+    
+    public int getAdoptStatus() {
+        return this.adoptStatus;
     }
 
     public boolean isSusceptible() {
@@ -70,6 +89,22 @@ public class Person {
     
     public boolean isVaccinated() {
         return this.healthStatus==Person.VACCINATED;
+    }
+
+    public boolean isNONE() {
+        return this.adoptStatus==Person.NONE;
+    }
+    
+    public boolean isPEER() {
+        return this.adoptStatus==Person.PEER;
+    }
+    
+    public boolean isGENERAL() {
+        return this.adoptStatus==Person.GENERAL;
+    }
+    
+    public boolean isMIXED() {
+        return this.adoptStatus==Person.MIXED;
     }
 
 }
