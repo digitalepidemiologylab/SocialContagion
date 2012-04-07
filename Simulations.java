@@ -1,17 +1,21 @@
 package com.salathegroup.socialcontagion;
 
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
+import edu.uci.ics.jung.algorithms.layout.KKLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
-import org.apache.commons.collections15.Transformer;
 import edu.uci.ics.jung.visualization.BasicVisualizationServer;
 import edu.uci.ics.jung.visualization.decorators.ToStringLabeller;
-import edu.uci.ics.jung.algorithms.layout.*;
+import org.apache.commons.collections15.Transformer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Set;
+import java.util.Vector;
 
 public class Simulations {
 
@@ -31,9 +35,8 @@ public class Simulations {
     int[] clusterSize;
     ArrayList<Double> avgClusterDistances;
     ArrayList<Integer> outbreakSizeList;
-    int peerAdopters = 0;
-    int generalAdopters = 0;
-    int mixedAdopters = 0;
+    int socialEdges = 0;
+
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -42,11 +45,10 @@ public class Simulations {
 
     public void run(){
         this.initGraph();
+        double totalEdges = this.g.getEdgeCount();
         this.runSocialTimesteps();
-        this.removeVaccinated();
-        this.clusters();
+        System.out.println(this.getFractionAdoptStatus(Person.GENERAL) + "," + this.getFractionAdoptStatus(Person.PEER) + "," + this.getFractionAdoptStatus(Person.MIXED) + "," + (socialEdges / totalEdges));
     }
-
 
 
     private void runSocialTimesteps() {
@@ -55,6 +57,7 @@ public class Simulations {
             if (this.opinionIsSpreading) {
                 this.generalExposure();
                 this.socialContagion();
+                this.adoptionCheck();
                 if (!this.opinionIsSpreading) {
                     if (this.getFractionOfNegativeVaccinationOpinion() == 0) break;
                     this.vaccinate();
@@ -99,11 +102,8 @@ public class Simulations {
 
         double ratioSimulatedTOPredicted = simulatedAverageOutbreak/predictOutbreakSize();
 
-        System.out.println(SimulationSettings.getInstance().getInfectionRate() + "," + ratioSimulatedTOPredicted + "," + getMaxDistance() + "," + getFractionAdoptStatus(Person.GENERAL) + "," + getFractionAdoptStatus(Person.PEER) + "," + getFractionAdoptStatus(Person.MIXED) + "," + getFractionAdoptStatus(Person.NONE));
-
 
     }
-
 
     public double getFractionHealthStatus(int status) {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
@@ -126,7 +126,6 @@ public class Simulations {
         }
         return (double)counter/numberOfPeople;
     }
-
 
     private void infectRandomIndexCase() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
@@ -169,14 +168,20 @@ public class Simulations {
             }
             Person nextExposure = this.people[random.nextInt(numberOfPeople)];
             if (nextExposure.getNumberOfExposures() < T) {
-                nextExposure.increaseGeneralExposures("generalExposure_t="+this.socialTimestep);
-                numberOfPeopleToExpose--;
+                nextExposure.increaseGeneralExposures("GE" + ":null:" + this.socialTimestep);
             }
+            numberOfPeopleToExpose--;
+
         }
+        //  LOGIC OF GENERAL EXPOSURES
+        // 1.) Find how many people need to be exposed to meet the random requirement (e.g., if RGE = 0.01 & pop = 100...we'd need to expose 1 person)
+        // 2.) While there are still people to expose, pick a random individual to expose (nextExposure)
+        // 3.) If that person has already adopted, exposure occurs silently but NOT be added to the exposureHashSet
+        // 4.) Regardless of whether or not they've adopted...number of people to expose should still go down by 1
+        // Why? If we only decrease counter when it's a non-adopter...we're preferentially exposing non-adopters...thus not truly random.
     }
 
     private void socialContagion() {
-        int T = SimulationSettings.getInstance().getT();
         double omega = SimulationSettings.getInstance().getOmega();
         for (Person person:this.g.getVertices()) {
             if (omega == 0) continue;
@@ -184,11 +189,16 @@ public class Simulations {
             for (Person neighbour:this.g.getNeighbors(person)) {
                 if (neighbour.getVaccinationOpinion().equals("-")) {
                     if (this.random.nextDouble() < omega) {
-                        person.increaseGeneralExposures(neighbour.toString());
+                        person.increaseGeneralExposures("SE:" + neighbour.toString() + ":" + this.socialTimestep);
                     }
                 }
             }
         }
+    }
+
+    private void adoptionCheck() {
+        int T = SimulationSettings.getInstance().getT();
+
         for (Person person:this.g.getVertices()) {
             if (person.getNumberOfExposures() >= T) {
                 person.setTempValue(true);
@@ -196,37 +206,66 @@ public class Simulations {
         }
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
-                this.determineAdoptionStatus(person);
-                this.setAntiVaccinationOpinion(person);
                 person.setTempValue(false);
+                this.setAntiVaccinationOpinion(person);
+                this.determineAdoptionStatus(person);
+
             }
         }
     }
 
+
     private void determineAdoptionStatus(Person person) {
+        int T = SimulationSettings.getInstance().getT();
+        ArrayList<String[]> parsedExposures = new ArrayList<String[]>();
+        String delimiter = ":";
         int genCount = 0;
         int peerCount = 0;
-
+        int genTime = 0;
+        int peerTime = 0;
+        Person recentExposer = null;
         for (String exposure:person.getExposureHashSet()) {
-            if (exposure.startsWith("generalExposure_t=")) genCount++;
-            else peerCount++;
+            parsedExposures.add(exposure.split(delimiter));
         }
 
-        if (genCount == 2) {
-            this.generalAdopters++;
+        for (int i = 0; i < parsedExposures.size(); i++) {
+            if (parsedExposures.get(i)[0].startsWith("SE"))  {
+                peerCount++;
+                if (Integer.parseInt(parsedExposures.get(i)[2]) > peerTime) {
+                    peerTime = Integer.parseInt(parsedExposures.get(i)[2]);
+                    recentExposer = this.people[Integer.parseInt(parsedExposures.get(i)[1])];
+                }
+            }
+            else if (parsedExposures.get(i)[0].startsWith("GE")) {
+                genCount++;
+                if (Integer.parseInt(parsedExposures.get(i)[2]) > genTime) {
+                    genTime = Integer.parseInt(parsedExposures.get(i)[2]);
+                }
+            }
+        }
+
+        if (genCount >= T && peerCount ==0) {
             person.setAdoptStatus(Person.GENERAL);
         }
-        if (peerCount == 2) {
-            this.peerAdopters++;
+        if (peerCount >= T && genCount == 0) {
             person.setAdoptStatus(Person.PEER);
+            this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
+            this.socialEdges++;
+            
         }
         if (genCount == 1 && peerCount == 1) {
-            this.mixedAdopters++;
             person.setAdoptStatus(Person.MIXED);
+            if (peerTime > genTime) {
+                this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
+                this.socialEdges++;
+            }
+        }
+        if (genCount == 1 && peerCount > 1) {
+            person.setAdoptStatus(Person.MIXED);
+            this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
+            this.socialEdges++;
         }
     }
-
-
 
     private void setAntiVaccinationOpinion(Person person) {
         if (this.opinionIsSpreading) {
@@ -308,7 +347,7 @@ public class Simulations {
                     int newIndex = i + diff;
                     if (newIndex < 0) newIndex += numberOfPeople;
                     if (newIndex >= numberOfPeople) newIndex -= numberOfPeople;
-                    this.g.addEdge(new Connection(),this.people[i],this.people[newIndex]);
+                    this.g.addEdge(new Connection(Connection.BASIC),this.people[i],this.people[newIndex]);
                 }
             }
             for (Connection edge:this.g.getEdges()) {
@@ -320,7 +359,7 @@ public class Simulations {
                     }
                     while (this.g.isNeighbor(source,newDestination) || source.equals(newDestination));
                     this.g.removeEdge(edge);
-                    this.g.addEdge(new Connection(),source,newDestination);
+                    this.g.addEdge(new Connection(Connection.BASIC),source,newDestination);
                 }
             }
             WeakComponentClusterer wcc = new WeakComponentClusterer();
@@ -356,7 +395,7 @@ public class Simulations {
                 this.SusceptibleGraph.addVertex(person);
                 for (Person neighbor:this.g.getNeighbors(person)) {
                     this.SusceptibleGraph.addVertex(neighbor);
-                    this.SusceptibleGraph.addEdge(new Connection(), person, neighbor);
+                    this.SusceptibleGraph.addEdge(new Connection(Connection.BASIC), person, neighbor);
                 }
             }
         }

@@ -1,5 +1,34 @@
 package com.salathegroup.socialcontagion;
 
+
 public class Connection {
+
+    private int edgeType;
+    private Person source;
+    private Person destination;
+
+    public static final int BASIC = 1;
+    public static final int SOCIAL = 2;
+
+    public Connection(int edgeType) {
+        this.edgeType = edgeType;
+    }
+
+    public boolean isSOCIAL() {
+        return this.edgeType==Connection.SOCIAL;
+    }
+
+    public boolean isBASIC() {
+        return this.edgeType==Connection.BASIC;
+    }
+
+    public void setEdgeType(int edgeType) {
+        this.edgeType = edgeType;
+    }
+
+    public int getEdgeType() {
+        return this.edgeType;
+    }
+
 
 }

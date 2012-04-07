@@ -11,7 +11,7 @@ public class SimulationManager {
     public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
         // sm.fileReading("/Users/ellscampbell/Documents/SocialContagion/rgeXomega,10sims,p0/clusters");
-         sm.betaVpredict();
+         sm.adoptionANDedgeType();
         // sm.heatmaps();
         // sm.rewire_clusters_outbreaks();
         // sm.threshold_clusters_outbreaks();
@@ -23,24 +23,24 @@ public class SimulationManager {
         // sm.runOutbreaksLikelihoodVsVaccinationCoverage();
     }
 
-    public void betaVpredict() {
+    public void playground() {
+
+    }
+
+    public void adoptionANDedgeType() {
         int numberOfSimulations = 100;
         SimulationSettings.getInstance().setOmega(0.01);
         SimulationSettings.getInstance().setRge(0.001);
         
-        System.out.println(SimulationSettings.getInstance().getRewiringProbability()+ "," + "SC.01 // GE.001") ;
-        System.out.println("Infection Rate" + ", " + "Simulated : Predicted Ratio" + ", " + "Largest Cluster Distance" + "," + "%GEN"+ "," + "%PEER"+ "," + "%MIXED");
+        System.out.println("p(rewire)="+SimulationSettings.getInstance().getRewiringProbability() + "," + "OMEGA=.01,RGE=.001") ;
+        System.out.println("GEN"+ "," + "PEER"+ "," + "MIXED" + "," + "SocialEdges");
 
-        for (int i = 0; i < 10; i++) {
-            double beta = 0.1 + (i * 0.1);
-            SimulationSettings.getInstance().setInfectionRate(beta);
-
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
-                Simulations sim = new Simulations();
-                sim.predictVsimulate();
-            }
+        for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+            Simulations sim = new Simulations();
+            sim.run();
         }
     }
+
 
     private void heatmaps() {
         int numberOfSimulations = 10;
