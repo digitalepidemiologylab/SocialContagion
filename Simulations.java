@@ -25,6 +25,7 @@ public class Simulations {
     int socialTimestep = 0;
     int biologicalTimestep = 0;
     Person[] people;
+    Connection[] connections;
     Random random = new Random();
     boolean opinionIsSpreading = false;
     boolean diseaseIsSpreading = false;
@@ -35,7 +36,10 @@ public class Simulations {
     int[] clusterSize;
     ArrayList<Double> avgClusterDistances;
     ArrayList<Integer> outbreakSizeList;
-    int socialEdges = 0;
+    int mixedSocialEdges = 0;
+    int simulSocialEdges = 0;
+    int onlySocialEdges = 0;
+
 
 
     public static void main(String[] args) {
@@ -47,7 +51,8 @@ public class Simulations {
         this.initGraph();
         double totalEdges = this.g.getEdgeCount();
         this.runSocialTimesteps();
-        System.out.println(this.getFractionAdoptStatus(Person.GENERAL) + "," + this.getFractionAdoptStatus(Person.PEER) + "," + this.getFractionAdoptStatus(Person.MIXED) + "," + (socialEdges / totalEdges));
+        int totalSocialEdges = mixedSocialEdges + simulSocialEdges + onlySocialEdges;
+        System.out.println(this.getFractionAdoptStatus(Person.GENERAL) + "," + this.getFractionAdoptStatus(Person.PEER) + "," + this.getFractionAdoptStatus(Person.MIXED) + "," + (totalSocialEdges / totalEdges) + "," + (mixedSocialEdges / totalEdges) + "," + (simulSocialEdges/totalEdges) + (onlySocialEdges/totalEdges));
     }
 
 
@@ -126,6 +131,7 @@ public class Simulations {
         }
         return (double)counter/numberOfPeople;
     }
+
 
     private void infectRandomIndexCase() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
@@ -250,20 +256,22 @@ public class Simulations {
         if (peerCount >= T && genCount == 0) {
             person.setAdoptStatus(Person.PEER);
             this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-            this.socialEdges++;
+            this.onlySocialEdges++;
             
         }
         if (genCount == 1 && peerCount == 1) {
             person.setAdoptStatus(Person.MIXED);
             if (peerTime > genTime) {
                 this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-                this.socialEdges++;
+                this.mixedSocialEdges++;
+
             }
         }
         if (genCount == 1 && peerCount > 1) {
             person.setAdoptStatus(Person.MIXED);
             this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-            this.socialEdges++;
+            this.simulSocialEdges++;
+
         }
     }
 
@@ -333,6 +341,7 @@ public class Simulations {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int k = SimulationSettings.getInstance().getK();
         this.people = new Person[numberOfPeople];
+        
         do {
             this.g = new SparseGraph<Person, Connection>();
             for (int i = 0; i < numberOfPeople; i++) {
@@ -347,10 +356,14 @@ public class Simulations {
                     int newIndex = i + diff;
                     if (newIndex < 0) newIndex += numberOfPeople;
                     if (newIndex >= numberOfPeople) newIndex -= numberOfPeople;
-                    this.g.addEdge(new Connection(Connection.BASIC),this.people[i],this.people[newIndex]);
+                    this.g.addEdge(new Connection(0, this.people[i], this.people[newIndex], Connection.BASIC),this.people[i],this.people[newIndex]);    //connection ID set to zero, assigned in the next loop
+
                 }
             }
+            int edgeCounter = 0;
+            this.connections = new Connection[this.g.getEdgeCount()];
             for (Connection edge:this.g.getEdges()) {
+                edgeCounter++;
                 if (this.random.nextDouble() < SimulationSettings.getInstance().getRewiringProbability()) {
                     Person source = this.g.getEndpoints(edge).getFirst();
                     Person newDestination;
@@ -359,13 +372,18 @@ public class Simulations {
                     }
                     while (this.g.isNeighbor(source,newDestination) || source.equals(newDestination));
                     this.g.removeEdge(edge);
-                    this.g.addEdge(new Connection(Connection.BASIC),source,newDestination);
+                    this.g.addEdge(new Connection(edgeCounter, source, newDestination, Connection.BASIC),source,newDestination);
                 }
+                // connections array is populated AFTER rewiring
+
+                this.connections[edgeCounter-1] = new Connection(edgeCounter, this.g.getSource(edge), this.g.getDest(edge), edge.getEdgeType()); //assign connection ID, retreive source + destination + type
             }
             WeakComponentClusterer wcc = new WeakComponentClusterer();
             components = wcc.transform(this.g);
         }
         while (components.size() > 1);
+
+
 
     }
 
@@ -395,7 +413,7 @@ public class Simulations {
                 this.SusceptibleGraph.addVertex(person);
                 for (Person neighbor:this.g.getNeighbors(person)) {
                     this.SusceptibleGraph.addVertex(neighbor);
-                    this.SusceptibleGraph.addEdge(new Connection(Connection.BASIC), person, neighbor);
+                    this.SusceptibleGraph.addEdge(new Connection(this.g.findEdge(person, neighbor).getID(), person, neighbor, Connection.BASIC), person, neighbor);
                 }
             }
         }
