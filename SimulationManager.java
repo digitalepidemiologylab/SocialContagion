@@ -11,13 +11,9 @@ public class SimulationManager {
     public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
         // sm.fileReading("/Users/ellscampbell/Documents/SocialContagion/rgeXomega,10sims,p0/clusters");
-         sm.adoptionANDedgeType();
         // sm.heatmaps();
-        // sm.rewire_clusters_outbreaks();
-        // sm.threshold_clusters_outbreaks();
-        // sm.rge_clusters_outbreaks();
-        // sm.runOutbreaks_onlySusceptible();
-        // sm.runOutbreaks_vs_exposureRate();
+        sm.adoptionStatus();
+        // sm.edgeRemoval();
         // sm.runOutbreaks_vs_VaccineCoverage_vs_Threshold();
         // sm.runOutbreaksVsVaccinationCoverage();
         // sm.runOutbreaksLikelihoodVsVaccinationCoverage();
@@ -27,17 +23,57 @@ public class SimulationManager {
 
     }
 
-    public void adoptionANDedgeType() {
+    public void adoptionStatus() {
+        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01  //  RGE = 0.001 ");
+        System.out.println("Social Adopter" + "," + "mixedSocial Adopter" + "," + "General Adopter" + "mixedGeneral Adopter");
+
         int numberOfSimulations = 100;
         SimulationSettings.getInstance().setOmega(0.01);
         SimulationSettings.getInstance().setRge(0.001);
-        
-        System.out.println("p(rewire)="+SimulationSettings.getInstance().getRewiringProbability() + "," + "OMEGA=.01,RGE=.001") ;
-        System.out.println("GEN"+ "," + "PEER"+ "," + "MIXED" + "," + "SocialEdges");
 
-        for (int simCount = 0; simCount < numberOfSimulations; simCount++){
+        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
             Simulations sim = new Simulations();
             sim.run();
+        }
+    }
+
+
+    public void edgeRemoval() {
+        int numberOfSimulations = 100;
+        SimulationSettings.getInstance().setOmega(0.01);
+        SimulationSettings.getInstance().setRge(0.001);
+        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01  //  RGE = 0.001 ");
+        System.out.println("Osize" + ", " + "Osize-mixedSocial" + ", " + "Osize-allSocial" + ", " + "CC" + ", " + "CC-mixedSocial" + ", " + "CC-allSocial");
+
+        ArrayList<Double[]> outbreakSizes = new ArrayList<Double[]>();
+        ArrayList<Integer[]> clusterCounts = new ArrayList<Integer[]>();
+        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
+            Double[] outbreakSize;
+            Integer[] clusterCount;
+            outbreakSize = new Double[3];
+            clusterCount = new Integer[3];
+            Simulations sim = new Simulations();
+            sim.run();
+            sim.removeVaccinated();
+            sim.clusters();
+            outbreakSize[0] = sim.predictOutbreakSize();
+            clusterCount[0] = sim.getClusterCount();
+
+            sim.removeSocialEdges(Connection.mixedSOCIAL);
+            sim.clusters();
+            outbreakSize[1] = sim.predictOutbreakSize();
+            clusterCount[1] = sim.getClusterCount();
+            
+            sim.removeSocialEdges(Connection.SOCIAL);
+            sim.clusters();
+            outbreakSize[2] = sim.predictOutbreakSize();
+            clusterCount[2] = sim.getClusterCount();
+
+            System.out.println(outbreakSize[0] + "," + outbreakSize[1] + "," + outbreakSize[2] + "," + clusterCount[0] + "," + clusterCount[1] + "," + clusterCount[2]);
+            
+            
+            outbreakSizes.add(outbreakSize);
+            clusterCounts.add(clusterCount);
         }
     }
 
@@ -109,142 +145,7 @@ public class SimulationManager {
         }
     }
 
-    private void rewire_clusters_outbreaks() {
 
-        ArrayList<Integer> ClusterCount;
-        ArrayList<Double> OutbreakSize;
-        int numberOfSimulations = 500;
-        int rewireRange = 400;
-        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
-
-
-        for (int rewireCounter = 0; rewireCounter < rewireRange; rewireCounter++) {
-            double rewiringProbability = 0.101 + (0.001 * rewireCounter);
-            SimulationSettings.getInstance().setRewiringProbability(rewiringProbability);
-            ClusterCount = new ArrayList<Integer>();
-            OutbreakSize = new ArrayList<Double>();
-
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
-                Simulations sim = new Simulations();
-                sim.run();
-
-                ClusterCount.add(sim.getClusterCount());
-                OutbreakSize.add(sim.predictOutbreakSize());
-            }
-            int cSum = 0;
-            double oSum = 0;
-            for (int i = 0; i < numberOfSimulations; i++) {
-                cSum = cSum + ClusterCount.get(i);
-                oSum = oSum + OutbreakSize.get(i);
-            }
-
-            double cAvg = (double)cSum/numberOfSimulations;
-            double oAvg = oSum/numberOfSimulations;
-
-            System.out.println(rewiringProbability + "," + cAvg + "," + oAvg);
-
-        }
-    }
-
-    private void threshold_clusters_outbreaks() {
-
-        ArrayList<Integer> ClusterCount;
-        ArrayList<Double> OutbreakSize;
-        int numberOfSimulations = 500;
-        int thresholdRange = 11;
-        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
-
-
-        for (int threshold = 1; threshold < thresholdRange; threshold++) {
-            SimulationSettings.getInstance().setT(threshold);
-            ClusterCount = new ArrayList<Integer>();
-            OutbreakSize = new ArrayList<Double>();
-
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
-                Simulations sim = new Simulations();
-                sim.run();
-
-                ClusterCount.add(sim.getClusterCount());
-                OutbreakSize.add(sim.predictOutbreakSize());
-            }
-            int cSum = 0;
-            double oSum = 0;
-            for (int i = 0; i < numberOfSimulations; i++) {
-                cSum = cSum + ClusterCount.get(i);
-                oSum = oSum + OutbreakSize.get(i);
-            }
-
-            double cAvg = (double)cSum/numberOfSimulations;
-            double oAvg = oSum/numberOfSimulations;
-
-            System.out.println(threshold + "," + cAvg + "," + oAvg);
-
-        }
-    }
-
-    private void rge_clusters_outbreaks() {
-
-        ArrayList<Integer> ClusterCount;
-        ArrayList<Double> OutbreakSize;
-        int numberOfSimulations = 500;
-        int rgeRange = 100;
-        SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(0.10);
-
-
-        for (int rgeCounter = 0; rgeCounter < rgeRange; rgeCounter++) {
-            double rge = 0.01 + (0.01*rgeCounter);
-            SimulationSettings.getInstance().setRge(rge);
-            ClusterCount = new ArrayList<Integer>();
-            OutbreakSize = new ArrayList<Double>();
-
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++){
-                Simulations sim = new Simulations();
-                sim.run();
-
-                ClusterCount.add(sim.getClusterCount());
-                OutbreakSize.add(sim.predictOutbreakSize());
-
-            }
-
-            int cSum = 0;
-            double oSum = 0;
-            for (int i = 0; i < numberOfSimulations; i++) {
-                cSum = cSum + ClusterCount.get(i);
-                oSum = oSum + OutbreakSize.get(i);
-            }
-
-            double cAvg = (double)cSum/numberOfSimulations;
-            double oAvg = oSum/numberOfSimulations;
-
-            System.out.println(cAvg + "," + oAvg);
-
-
-
-        }
-    }
-
-    private void runOutbreaks_vs_Omega() {
-        int numberOfSimulations = 500;
-        int minOutbreakSize = 10;
-
-        for (int i = 1; i < 25; i++) {
-            double omega = 0.01 * i;
-            SimulationSettings.getInstance().setOmega(omega);
-
-            int numberOfOutbreaks = 0;
-            for (int ii = 0; ii < 10; ii++){
-                double vaccinationCoverage = 0.5 + (0.05 * ii);
-                SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(1.0 - vaccinationCoverage);
-
-                for (int iii = 0; iii < numberOfSimulations; iii++) {
-                    Simulations sim = new Simulations();
-                    sim.run();
-                    if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
-                }
-                System.out.println(vaccinationCoverage + "\t" + (double)numberOfOutbreaks);
-            }
-        }
-    }
 
     private void runOutbreaks_vs_VaccineCoverage_vs_Threshold() {
         int numberOfSimulations = 500;

@@ -36,11 +36,9 @@ public class Simulations {
     int[] clusterSize;
     ArrayList<Double> avgClusterDistances;
     ArrayList<Integer> outbreakSizeList;
+    int onlySocialEdges = 0;
     int mixedSocialEdges = 0;
     int simulSocialEdges = 0;
-    int onlySocialEdges = 0;
-
-
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -49,10 +47,8 @@ public class Simulations {
 
     public void run(){
         this.initGraph();
-        double totalEdges = this.g.getEdgeCount();
         this.runSocialTimesteps();
-        int totalSocialEdges = mixedSocialEdges + simulSocialEdges + onlySocialEdges;
-        System.out.println(this.getFractionAdoptStatus(Person.GENERAL) + "," + this.getFractionAdoptStatus(Person.PEER) + "," + this.getFractionAdoptStatus(Person.MIXED) + "," + (totalSocialEdges / totalEdges) + "," + (mixedSocialEdges / totalEdges) + "," + (simulSocialEdges/totalEdges) + (onlySocialEdges/totalEdges));
+        System.out.println(getFractionAdoptStatus(Person.onlySOCIAL) + "," + getFractionAdoptStatus(Person.mixedSOCIAL) + "," + getFractionAdoptStatus(Person.onlyGENERAL) + "," + getFractionAdoptStatus(Person.mixedGENERAL));
     }
 
 
@@ -125,9 +121,10 @@ public class Simulations {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
         int counter = 0;
         for (int i = 0; i<numberOfPeople;i++) {
-            if (adoptStatus == Person.GENERAL && this.people[i].isGENERAL()) counter++;
-            if (adoptStatus == Person.PEER && this.people[i].isPEER()) counter++;
-            if (adoptStatus == Person.MIXED && this.people[i].isMIXED()) counter++;
+            if (adoptStatus == Person.onlyGENERAL && this.people[i].isGENERAL()) counter++;
+            if (adoptStatus == Person.onlySOCIAL && this.people[i].isSOCIAL()) counter++;
+            if (adoptStatus == Person.mixedGENERAL && this.people[i].ismixedGENERAL()) counter++;
+            if (adoptStatus == Person.mixedSOCIAL && this.people[i].ismixedSOCIAL()) counter++;
         }
         return (double)counter/numberOfPeople;
     }
@@ -220,7 +217,6 @@ public class Simulations {
         }
     }
 
-
     private void determineAdoptionStatus(Person person) {
         int T = SimulationSettings.getInstance().getT();
         ArrayList<String[]> parsedExposures = new ArrayList<String[]>();
@@ -251,24 +247,27 @@ public class Simulations {
         }
 
         if (genCount >= T && peerCount ==0) {
-            person.setAdoptStatus(Person.GENERAL);
+            person.setAdoptStatus(Person.onlyGENERAL);
         }
         if (peerCount >= T && genCount == 0) {
-            person.setAdoptStatus(Person.PEER);
+            person.setAdoptStatus(Person.onlySOCIAL);
             this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
             this.onlySocialEdges++;
             
         }
         if (genCount == 1 && peerCount == 1) {
-            person.setAdoptStatus(Person.MIXED);
-            if (peerTime > genTime) {
-                this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-                this.mixedSocialEdges++;
 
+            if (peerTime > genTime) {
+                person.setAdoptStatus(Person.mixedSOCIAL);
+                this.g.findEdge(person, recentExposer).setEdgeType(Connection.mixedSOCIAL);
+                this.mixedSocialEdges++;
+            }
+            else if (genTime > peerTime) {
+                person.setAdoptStatus(Person.mixedGENERAL);
             }
         }
         if (genCount == 1 && peerCount > 1) {
-            person.setAdoptStatus(Person.MIXED);
+            person.setAdoptStatus(Person.onlySOCIAL);
             this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
             this.simulSocialEdges++;
 
@@ -387,13 +386,30 @@ public class Simulations {
 
     }
 
-    private void removeVaccinated() {
+    public void removeVaccinated() {
         for (int i = 0; i < SimulationSettings.getInstance().getNumberOfPeople(); i++) {
             if (people[i].isVaccinated()) this.g.removeVertex(people[i]);
         }
     }
 
-    private void clusters() {
+    public void removeSocialEdges(int edgeType) {
+        for (Connection edge:this.g.getEdges()) {
+
+            if (edgeType==Connection.SOCIAL) {
+                if (edge.isSOCIAL()) {
+                    this.g.removeEdge(edge);
+                }
+            }
+
+            if (edgeType==Connection.mixedSOCIAL) {
+                if (edge.ismixedSOCIAL()) {
+                    this.g.removeEdge(edge);
+                }
+            }
+        }
+    }
+
+    public void clusters() {
         this.makeClusters();
         this.measureClusters();
 
