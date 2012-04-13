@@ -42,7 +42,6 @@ public class Simulations {
     int onlySocialEdges = 0;
     int mixedSocialEdges = 0;
     int simulSocialEdges = 0;
-    double simulatedAverageOutbreak = 0;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -56,7 +55,6 @@ public class Simulations {
         this.removeVaccinated();
         this.clusters();
         this.predictOutbreakSize();
-        this.multiBioSims();
     }
 
     public void recordGraph() {
@@ -136,10 +134,15 @@ public class Simulations {
         }
     }
 
-    public void multiBioSims() {
+    public void predictVsimulate() {
         outbreakSizeList = new ArrayList<Integer>();
+        this.initGraph();
+        this.runSocialTimesteps();
+        this.removeVaccinated();
+        this.clusters();
 
-        int simCount = 20;
+
+        int simCount = 100;
         for (int i = 0; i < simCount; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();
@@ -151,12 +154,12 @@ public class Simulations {
         for (int i = 0; i < simCount; i++) {
             outbreakSum = outbreakSum + outbreakSizeList.get(i);
         }
-        this.simulatedAverageOutbreak = outbreakSum/simCount;
+        double simulatedAverageOutbreak = outbreakSum/simCount;
 
-    }
+        double ratioSimulatedTOPredicted = simulatedAverageOutbreak/this.predictedOutbreakSize;
 
-    public double getSimulatedAverageOutbreak() {
-        return this.simulatedAverageOutbreak;
+        System.out.println(SimulationSettings.getInstance().getRewiringProbability() + "," + ratioSimulatedTOPredicted);
+
     }
 
     public double getFractionHealthStatus(int status) {
