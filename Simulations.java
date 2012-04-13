@@ -42,12 +42,13 @@ public class Simulations {
     int onlySocialEdges = 0;
     int mixedSocialEdges = 0;
     int simulSocialEdges = 0;
+    double simulatedAverageOutbreak = 0;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
         simulation.run();
     }
-    
+
 
     public void run() {
         this.initGraph();
@@ -55,6 +56,7 @@ public class Simulations {
         this.removeVaccinated();
         this.clusters();
         this.predictOutbreakSize();
+        this.multiBioSims();
     }
 
     public void recordGraph() {
@@ -100,7 +102,7 @@ public class Simulations {
         }catch (IOException e) {
             e.printStackTrace();
         }
-        
+
         for (int edge = 0; edge < edges.length; edge++) {
             out.println(edges[edge][0] + "," + edges[edge][1] + "," + edges[edge][2]);
         }
@@ -134,15 +136,10 @@ public class Simulations {
         }
     }
 
-    public void predictVsimulate() {
+    public void multiBioSims() {
         outbreakSizeList = new ArrayList<Integer>();
-        this.initGraph();
-        this.runSocialTimesteps();
-        this.removeVaccinated();
-        this.clusters();
 
-
-        int simCount = 100;
+        int simCount = 20;
         for (int i = 0; i < simCount; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();
@@ -154,12 +151,12 @@ public class Simulations {
         for (int i = 0; i < simCount; i++) {
             outbreakSum = outbreakSum + outbreakSizeList.get(i);
         }
-        double simulatedAverageOutbreak = outbreakSum/simCount;
+        this.simulatedAverageOutbreak = outbreakSum/simCount;
 
-        double ratioSimulatedTOPredicted = simulatedAverageOutbreak/this.predictedOutbreakSize;
+    }
 
-        System.out.println(SimulationSettings.getInstance().getRewiringProbability() + "," + ratioSimulatedTOPredicted);
-
+    public double getSimulatedAverageOutbreak() {
+        return this.simulatedAverageOutbreak;
     }
 
     public double getFractionHealthStatus(int status) {
