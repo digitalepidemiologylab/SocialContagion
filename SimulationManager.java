@@ -1,18 +1,25 @@
 package com.salathegroup.socialcontagion;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
-
-
 
 public class SimulationManager {
 
-
     public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
+        double rewire = Double.parseDouble(args[0]);
+
+        sm.theClusterHeatmaps(rewire);
+        // sm.predictedOutbreaks();
+        // sm.predictionRatio();
+        // sm.playground();
         // sm.fileReading("/Users/ellscampbell/Documents/SocialContagion/rgeXomega,10sims,p0/clusters");
-        // sm.heatmaps();
-        sm.adoptionStatus();
+        // sm.localHeatmaps();
+        // sm.edgeRemoval();
+        // sm.adoptionStatus();
         // sm.edgeRemoval();
         // sm.runOutbreaks_vs_VaccineCoverage_vs_Threshold();
         // sm.runOutbreaksVsVaccinationCoverage();
@@ -20,7 +27,49 @@ public class SimulationManager {
     }
 
     public void playground() {
+        for (int i = 0; i < 10; i++) {
+            System.out.println(System.currentTimeMillis());
+            Simulations sim = new Simulations();
+            sim.run();
+            System.out.println(System.currentTimeMillis());
 
+
+        }
+
+    }
+    
+    public void predictionRatio() {
+        int numberOfSimulations = 100;
+        SimulationSettings.getInstance().setOmega(0.01);
+        SimulationSettings.getInstance().setRge(0.001);
+        SimulationSettings.getInstance().setInfectionRate(0.20);
+
+        for (int rewireCounter = 0; rewireCounter < 50; rewireCounter++) {
+            double rewire = 0.0 + (0.02 * rewireCounter);
+            SimulationSettings.getInstance().setRewiringProbability(rewire);
+
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
+                Simulations sim = new Simulations();
+                sim.predictVsimulate();
+            }
+        }
+    }
+
+    public void predictedOutbreaks() {
+        int numberOfSimulations = 100;
+        SimulationSettings.getInstance().setOmega(0.01);
+        SimulationSettings.getInstance().setRge(0.001);
+        SimulationSettings.getInstance().setInfectionRate(0.30);
+
+        for (int rewireCounter = 0; rewireCounter < 50; rewireCounter++) {
+            double rewire = 0 + (0.02 * rewireCounter);
+            SimulationSettings.getInstance().setRewiringProbability(rewire);
+
+            for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
+                Simulations sim = new Simulations();
+                sim.run();
+            }
+        }
     }
 
     public void adoptionStatus() {
@@ -37,39 +86,34 @@ public class SimulationManager {
         }
     }
 
-
     public void edgeRemoval() {
         int numberOfSimulations = 100;
         SimulationSettings.getInstance().setOmega(0.01);
         SimulationSettings.getInstance().setRge(0.001);
-        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01  //  RGE = 0.001 ");
-        System.out.println("Osize" + ", " + "Osize-mixedSocial" + ", " + "Osize-allSocial" + ", " + "CC" + ", " + "CC-mixedSocial" + ", " + "CC-allSocial");
+        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01 // RGE = 0.001 ");
+        System.out.println("Osize" + ", " + "Osize-BASIC" + ", " + "CC" + ", " + "CC-BASIC" );
 
         ArrayList<Double[]> outbreakSizes = new ArrayList<Double[]>();
         ArrayList<Integer[]> clusterCounts = new ArrayList<Integer[]>();
         for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
             Double[] outbreakSize;
             Integer[] clusterCount;
-            outbreakSize = new Double[3];
-            clusterCount = new Integer[3];
+            outbreakSize = new Double[2];
+            clusterCount = new Integer[2];
             Simulations sim = new Simulations();
             sim.run();
             sim.removeVaccinated();
             sim.clusters();
-            outbreakSize[0] = sim.predictOutbreakSize();
+            outbreakSize[0] = sim.getPredictedOutbreakSize();
             clusterCount[0] = sim.getClusterCount();
 
-            sim.removeSocialEdges(Connection.mixedSOCIAL);
+            sim.removeSocialEdges(Connection.BASIC);
             sim.clusters();
-            outbreakSize[1] = sim.predictOutbreakSize();
+            outbreakSize[1] = sim.getPredictedOutbreakSize();
             clusterCount[1] = sim.getClusterCount();
-            
-            sim.removeSocialEdges(Connection.SOCIAL);
-            sim.clusters();
-            outbreakSize[2] = sim.predictOutbreakSize();
-            clusterCount[2] = sim.getClusterCount();
 
-            System.out.println(outbreakSize[0] + "," + outbreakSize[1] + "," + outbreakSize[2] + "," + clusterCount[0] + "," + clusterCount[1] + "," + clusterCount[2]);
+
+            System.out.println(outbreakSize[0] + "," + outbreakSize[1]  + "," + clusterCount[0] + "," + clusterCount[1]);
             
             
             outbreakSizes.add(outbreakSize);
@@ -77,19 +121,87 @@ public class SimulationManager {
         }
     }
 
+    private void theClusterHeatmaps(double rewire) {
+
+        SimulationSettings.getInstance().setRewiringProbability(rewire);
+
+        int steps = 20;
+        double omegaMax = 0.01;
+        double omegaStart = 0.0001;
+        double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1))) ;
+        double rgeMax = 0.01;
+        double rgeStart = 0.0001;
+        double rgeSteps = Math.pow(rgeMax/rgeStart, (1.0/(steps-1))) ;
+
+        double outbreaks_heatmap[][] = new double[steps][steps];
+        int clusters_heatmap[][] = new int[steps][steps];
+
+
+        for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
+            double omega = omegaStart * Math.pow(omegaSteps,omegaCounter);
+            SimulationSettings.getInstance().setOmega(omega);
+            for (int rgeCounter = 0; rgeCounter < steps; rgeCounter++) {
+                double rge = rgeStart * Math.pow(rgeSteps,rgeCounter);
+                SimulationSettings.getInstance().setRge(rge);
+                System.out.println(omega + "," + rge);
+                Simulations sim = new Simulations();
+                sim.run();
+
+
+                outbreaks_heatmap[omegaCounter][rgeCounter] = sim.getPredictedOutbreakSize();
+                clusters_heatmap[omegaCounter][rgeCounter] = sim.getClusterCount();
+
+            }
+        }
+
+        String outbreaksFilename = "outbreaks" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        PrintWriter outOutbreaks = null;
+        try {
+            outOutbreaks = new PrintWriter(new java.io.FileWriter(outbreaksFilename));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        for (int i = 0; i < steps; i++) {
+            for (int ii = 0; ii < steps; ii++) {
+                if (ii == steps-1) {
+                    outOutbreaks.println(outbreaks_heatmap[i][ii]);
+                }
+                else outOutbreaks.print(outbreaks_heatmap[i][ii] + ",");
+            }
+        }
+        outOutbreaks.close();
+
+        String clustersFilename = "clusters" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        PrintWriter outClusters = null;
+        try {
+            outClusters = new PrintWriter(new java.io.FileWriter(clustersFilename));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        for (int i = 0; i < steps; i++) {
+            for (int ii = 0; ii < steps; ii++) {
+                if (ii == steps-1) {
+                    outClusters.println(clusters_heatmap[i][ii]);
+                }
+                else outClusters.print(clusters_heatmap[i][ii] + ",");
+            }
+        }
+        outClusters.close();
+
+    }
 
     private void heatmaps() {
-        int numberOfSimulations = 10;
-        int steps = 10;
-        ArrayList<double[][]> Outbreaks = new ArrayList<double[][]>();
-        ArrayList<int[][]> Clusters = new ArrayList<int[][]>();
+        int numberOfSimulations = 1;
+        int steps = 20;
+        ArrayList<double[][]> outbreaks = new ArrayList<double[][]>();
+        ArrayList<int[][]> clusters = new ArrayList<int[][]>();
 
         for (int simCount = 0; simCount < numberOfSimulations; simCount++){
             double outbreaks_heatmap[][] = new double[10][10];
             int clusters_heatmap[][] = new int[10][10];
             System.out.println(simCount);
 
-            double omegaMax = 0.02;
+            double omegaMax = 0.01;
             double omegaStart = 0.0001;
             double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1))) ;
             double rgeMax = 0.01;
@@ -99,25 +211,26 @@ public class SimulationManager {
             for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
                 double omega = omegaStart * Math.pow(omegaSteps,omegaCounter);
                 SimulationSettings.getInstance().setOmega(omega);
-
                 for (int rgeCounter = 0; rgeCounter < steps; rgeCounter++) {
                     double rge = rgeStart * Math.pow(rgeSteps,rgeCounter);
                     SimulationSettings.getInstance().setRge(rge);
-
+                    System.out.println(System.currentTimeMillis());
                     Simulations sim = new Simulations();
                     sim.run();
+                    System.out.println(System.currentTimeMillis());
 
-                    outbreaks_heatmap[omegaCounter][rgeCounter] = sim.predictOutbreakSize();
+
+                    outbreaks_heatmap[omegaCounter][rgeCounter] = sim.getPredictedOutbreakSize();
                     clusters_heatmap[omegaCounter][rgeCounter] = sim.getClusterCount();
 
                 }
             }
-            Outbreaks.add(outbreaks_heatmap);
-            Clusters.add(clusters_heatmap);
+            outbreaks.add(outbreaks_heatmap);
+            clusters.add(clusters_heatmap);
         }
 
         for (int simulation = 0; simulation < numberOfSimulations; simulation++) {
-            String outbreaksFilename = "Outbreaks" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
+            String outbreaksFilename = "outbreaks" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
             PrintWriter out = null;
             try {
                 out = new PrintWriter(new java.io.FileWriter(outbreaksFilename));
@@ -125,13 +238,13 @@ public class SimulationManager {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
             for (int i = 0; i < 10; i++) {
-                out.println(Outbreaks.get(simulation)[i][0] + "," + Outbreaks.get(simulation)[i][1] + "," + Outbreaks.get(simulation)[i][2] + "," + Outbreaks.get(simulation)[i][3] + "," + Outbreaks.get(simulation)[i][4]+ "," + Outbreaks.get(simulation)[i][5]+ "," + Outbreaks.get(simulation)[i][6] + "," + Outbreaks.get(simulation)[i][7] + "," + Outbreaks.get(simulation)[i][8] + "," + Outbreaks.get(simulation)[i][9]) ;
+                out.println(outbreaks.get(simulation)[i][0] + "," + outbreaks.get(simulation)[i][1] + "," + outbreaks.get(simulation)[i][2] + "," + outbreaks.get(simulation)[i][3] + "," + outbreaks.get(simulation)[i][4]+ "," + outbreaks.get(simulation)[i][5]+ "," + outbreaks.get(simulation)[i][6] + "," + outbreaks.get(simulation)[i][7] + "," + outbreaks.get(simulation)[i][8] + "," + outbreaks.get(simulation)[i][9]) ;
             }
             out.close();
         }
 
         for (int simulation = 0; simulation < numberOfSimulations; simulation++) {
-            String clustersFilename = "Clusters" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
+            String clustersFilename = "clusters" + String.format("%3d",simulation) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability());
             PrintWriter out = null;
             try {
                 out = new PrintWriter(new java.io.FileWriter(clustersFilename));
@@ -139,7 +252,7 @@ public class SimulationManager {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
             for (int i = 0; i < 10; i++) {
-                out.println(Clusters.get(simulation)[i][0] + "," + Clusters.get(simulation)[i][1] + "," + Clusters.get(simulation)[i][2] + "," + Clusters.get(simulation)[i][3] + "," + Clusters.get(simulation)[i][4] + "," + Clusters.get(simulation)[i][5] + "," + Clusters.get(simulation)[i][6] + "," + Clusters.get(simulation)[i][7] + "," + Clusters.get(simulation)[i][8] + "," + Clusters.get(simulation)[i][9]) ;
+                out.println(clusters.get(simulation)[i][0] + "," + clusters.get(simulation)[i][1] + "," + clusters.get(simulation)[i][2] + "," + clusters.get(simulation)[i][3] + "," + clusters.get(simulation)[i][4] + "," + clusters.get(simulation)[i][5] + "," + clusters.get(simulation)[i][6] + "," + clusters.get(simulation)[i][7] + "," + clusters.get(simulation)[i][8] + "," + clusters.get(simulation)[i][9]) ;
             }
             out.close();
         }

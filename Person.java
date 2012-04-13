@@ -39,6 +39,10 @@ public class Person {
     public String getVaccinationOpinion() {
         return this.vaccinationOpinion;
     }
+    
+    public String getID() {
+        return this.id;
+    }
 
     public void setVaccinationOpinion(String vaccinationOpinion) {
         this.vaccinationOpinion = vaccinationOpinion;
@@ -113,3 +117,5 @@ public class Person {
     }
 
 }
+
+

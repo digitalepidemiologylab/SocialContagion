@@ -10,7 +10,6 @@ public class Connection {
 
     public static final int BASIC = 1;
     public static final int SOCIAL = 2;
-    public static final int mixedSOCIAL = 3;
 
 
     public Connection(int id, Person source, Person destination, int edgeType) {
@@ -26,10 +25,6 @@ public class Connection {
 
     public boolean isBASIC() {
         return this.edgeType==Connection.BASIC;
-    }
-
-    public boolean ismixedSOCIAL() {
-        return this.edgeType==Connection.mixedSOCIAL;
     }
 
     public void setEdgeType(int edgeType) {

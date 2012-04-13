@@ -12,6 +12,8 @@ import org.apache.commons.collections15.Transformer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
@@ -34,6 +36,7 @@ public class Simulations {
     double predictedOutbreakSize = 0;
     int[] clusterSizeSquared;
     int[] clusterSize;
+    int clusterCount;
     ArrayList<Double> avgClusterDistances;
     ArrayList<Integer> outbreakSizeList;
     int onlySocialEdges = 0;
@@ -44,13 +47,65 @@ public class Simulations {
         Simulations simulation = new Simulations();
         simulation.run();
     }
+    
 
-    public void run(){
+    public void run() {
         this.initGraph();
         this.runSocialTimesteps();
-        System.out.println(getFractionAdoptStatus(Person.onlySOCIAL) + "," + getFractionAdoptStatus(Person.mixedSOCIAL) + "," + getFractionAdoptStatus(Person.onlyGENERAL) + "," + getFractionAdoptStatus(Person.mixedGENERAL));
+        this.removeVaccinated();
+        this.clusters();
+        this.predictOutbreakSize();
     }
 
+    public void recordGraph() {
+        this.initGraph();
+        this.runSocialTimesteps();
+        this.removeVaccinated();
+
+        String[][] nodes = new String[this.g.getVertexCount()][2];
+        String[][] edges = new String[this.g.getEdgeCount()][3];
+
+        int nodeCounter = 0;
+        for (Person person:this.g.getVertices()) {
+            nodes[nodeCounter][0] = person.getID();
+            nodes[nodeCounter][1] = Integer.toString(person.getAdoptStatus());
+            nodeCounter++;
+        }
+
+        int edgeCounter = 0;
+        for (Connection connection:this.g.getEdges()) {
+            edges[edgeCounter][0] = connection.getSource().getID();
+            edges[edgeCounter][1] = connection.getDestination().getID();
+            edges[edgeCounter][2] = Integer.toString(connection.getEdgeType());
+            edgeCounter++;
+        }
+
+        // write nodeList + adoptionStatus
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new java.io.FileWriter("nodes"));
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+        for (int node = 0; node < nodes.length; node++) {
+            out.println(nodes[node][0] + "," + nodes[node][1]);
+        }
+        out.close();
+
+
+        // write edgeList + edgeType
+        out = null;
+        try {
+            out = new PrintWriter(new java.io.FileWriter("edges"));
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+        
+        for (int edge = 0; edge < edges.length; edge++) {
+            out.println(edges[edge][0] + "," + edges[edge][1] + "," + edges[edge][2]);
+        }
+        out.close();
+    }
 
     private void runSocialTimesteps() {
         while(true) {
@@ -101,8 +156,9 @@ public class Simulations {
         }
         double simulatedAverageOutbreak = outbreakSum/simCount;
 
-        double ratioSimulatedTOPredicted = simulatedAverageOutbreak/predictOutbreakSize();
+        double ratioSimulatedTOPredicted = simulatedAverageOutbreak/this.predictedOutbreakSize;
 
+        System.out.println(SimulationSettings.getInstance().getRewiringProbability() + "," + ratioSimulatedTOPredicted);
 
     }
 
@@ -128,7 +184,6 @@ public class Simulations {
         }
         return (double)counter/numberOfPeople;
     }
-
 
     private void infectRandomIndexCase() {
         int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
@@ -259,7 +314,7 @@ public class Simulations {
 
             if (peerTime > genTime) {
                 person.setAdoptStatus(Person.mixedSOCIAL);
-                this.g.findEdge(person, recentExposer).setEdgeType(Connection.mixedSOCIAL);
+                this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
                 this.mixedSocialEdges++;
             }
             else if (genTime > peerTime) {
@@ -401,21 +456,15 @@ public class Simulations {
                 }
             }
 
-            if (edgeType==Connection.mixedSOCIAL) {
-                if (edge.ismixedSOCIAL()) {
+            if (edgeType==Connection.BASIC) {
+                if (edge.isBASIC()) {
                     this.g.removeEdge(edge);
                 }
             }
         }
     }
 
-    public void clusters() {
-        this.makeClusters();
-        this.measureClusters();
-
-    }
-
-    private void makeClusters() {
+    public void makeGraphsVIAClusters() {
         Set negativeClusters;
         WeakComponentClusterer wcc = new WeakComponentClusterer();
         negativeClusters = wcc.transform(this.g);
@@ -433,6 +482,28 @@ public class Simulations {
                 }
             }
         }
+    }
+
+    public void clusters() {
+        Set negativeClusters;
+
+        WeakComponentClusterer wcc = new WeakComponentClusterer();
+        negativeClusters = wcc.transform(this.g);
+
+        this.clusterSize = new int[negativeClusters.size()];
+        this.clusterSizeSquared = new int[negativeClusters.size()];
+        this.clusterCount = negativeClusters.size();
+
+        int counter = 0;
+        for (Object clusterObject:negativeClusters) {
+            Set cluster = (Set)clusterObject;
+            clusterSize[counter] = cluster.size();
+            clusterSizeSquared[counter] = (cluster.size() * cluster.size());
+        }
+    }
+    
+    public int getClusterCount() {
+        return this.clusterCount;
     }
 
     private void measureClusters(){
@@ -454,10 +525,7 @@ public class Simulations {
             //System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
         }
     }
-    
-    public int getClusterCount() {
-        return MultiGraphs.size();
-    }
+
 
     public double getMaxDistance(){
         double maxValue = 0;
@@ -470,7 +538,11 @@ public class Simulations {
         return maxValue;
     }
 
-    public double predictOutbreakSize(){
+    public double getPredictedOutbreakSize() {
+        return this.predictedOutbreakSize;
+    }
+    
+    public void predictOutbreakSize(){
         int squaredSum = 0;
         for (int i = 0; i < this.clusterSizeSquared.length; i++) {
             squaredSum = squaredSum + this.clusterSizeSquared[i];
@@ -480,7 +552,6 @@ public class Simulations {
             sizeSum = sizeSum + this.clusterSize[i];
         }
         this.predictedOutbreakSize = squaredSum/sizeSum;
-        return this.predictedOutbreakSize;
     }
 
     private void resetNegativeOpinions() {
@@ -494,13 +565,39 @@ public class Simulations {
     }
 
     private void plotGraph() {
-        // The Layout<V, E> is parameterized by the vertex and edge types
         Layout<Person, Connection> layout = new KKLayout<Person, Connection>(this.g);
-        layout.setSize(new Dimension(900,900)); // sets the initial size of the space
-        // The BasicVisualizationServer<V,E> is parameterized by the edge types
+        layout.setSize(new Dimension(900,900));
+
+
         BasicVisualizationServer<Person,Connection> vv =
                 new BasicVisualizationServer<Person,Connection>(layout);
-        vv.setPreferredSize(new Dimension(950,950)); //Sets the viewing area size
+
+        Transformer<Person,Paint> vertexColor = new Transformer<Person,Paint>() {
+            public Paint transform(Person person) {
+                if(person.getAdoptStatus() == Person.onlySOCIAL) return Color.RED;
+                if(person.getAdoptStatus() == Person.mixedSOCIAL) return Color.RED;
+                return Color.BLUE;
+            }
+        };
+        
+        Transformer<Connection, Paint> edgeColor = new Transformer<Connection, Paint>() {
+            public Paint transform(Connection connection) {
+                if(connection.getEdgeType() == Connection.SOCIAL) return Color.RED;
+                return Color.GRAY;
+            }
+        };
+
+        Transformer<Person,Shape> vertexSize = new Transformer<Person,Shape>(){
+            public Shape transform(Person person){
+                Ellipse2D circle = new Ellipse2D.Double(-5, -5, 5, 5);
+                return circle;
+            }
+        };
+
+        vv.getRenderContext().setVertexShapeTransformer(vertexSize);
+        vv.getRenderContext().setVertexFillPaintTransformer(vertexColor);
+        vv.getRenderContext().setEdgeFillPaintTransformer(edgeColor);
+        vv.setPreferredSize(new Dimension(950, 950));
         vv.getRenderContext().setVertexLabelTransformer(new ToStringLabeller());
         JFrame frame = new JFrame("Simple Graph View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -508,5 +605,7 @@ public class Simulations {
         frame.pack();
         frame.setVisible(true);
     }
+
+
 }
 
