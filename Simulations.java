@@ -3,7 +3,6 @@ package com.salathegroup.socialcontagion;
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
 import edu.uci.ics.jung.algorithms.layout.KKLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.algorithms.shortestpath.DistanceStatistics;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
 import edu.uci.ics.jung.visualization.BasicVisualizationServer;
@@ -13,7 +12,8 @@ import org.apache.commons.collections15.Transformer;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
-import java.io.*;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
@@ -58,6 +58,9 @@ public class Simulations {
         this.predictOutbreakSize();
         this.multiBioSims();
     }
+
+
+
 
     public void recordGraph() {
         this.initGraph();
@@ -111,19 +114,25 @@ public class Simulations {
 
     private void runSocialTimesteps() {
         while(true) {
+            //JOptionPane.showInputDialog("Step Forward");
             if (this.socialTimestep==0) this.opinionIsSpreading = true;
             if (this.opinionIsSpreading) {
                 this.generalExposure();
                 this.socialContagion();
                 this.adoptionCheck();
+
                 if (!this.opinionIsSpreading) {
                     if (this.getFractionOfNegativeVaccinationOpinion() == 0) break;
                     this.vaccinate();
                 }
             }
+            //plotGraph();
             this.socialTimestep++;
             if (!this.opinionIsSpreading) break;
+
         }
+
+
     }
 
     private void runBiologicalTimesteps() {
@@ -223,9 +232,9 @@ public class Simulations {
             }
             Person nextExposure = this.people[random.nextInt(numberOfPeople)];
             if (nextExposure.getNumberOfExposures() < T) {
-                nextExposure.increaseGeneralExposures("GE" + ":null:" + this.socialTimestep);
+                nextExposure.increaseGeneralExposures(Integer.MAX_VALUE, this.socialTimestep);
+                numberOfPeopleToExpose--;
             }
-            numberOfPeopleToExpose--;
 
         }
         //  LOGIC OF GENERAL EXPOSURES
@@ -243,8 +252,9 @@ public class Simulations {
             if (person.getVaccinationOpinion().equals("-")) continue;
             for (Person neighbour:this.g.getNeighbors(person)) {
                 if (neighbour.getVaccinationOpinion().equals("-")) {
-                    if (this.random.nextDouble() < omega) {
-                        person.increaseGeneralExposures("SE:" + neighbour.toString() + ":" + this.socialTimestep);
+                    if (person.getExposureList().contains(neighbour.getIntID())) continue;
+                    else if (this.random.nextDouble() < omega && person.getExposureList().size() < 2) {
+                        person.increaseGeneralExposures(neighbour.getIntID(), this.socialTimestep);
                     }
                 }
             }
@@ -257,6 +267,8 @@ public class Simulations {
         for (Person person:this.g.getVertices()) {
             if (person.getNumberOfExposures() >= T) {
                 person.setTempValue(true);
+                //System.out.println(person.getID() + "//" + person.getExposureList().get(0) + "//" + person.getExposureTimestamps().get(0));
+                //System.out.println(person.getID() + "//" + person.getExposureList().get(1) + "//" + person.getExposureTimestamps().get(1));
             }
         }
         for (Person person:this.g.getVertices()) {
@@ -267,62 +279,56 @@ public class Simulations {
 
             }
         }
-    }
-
+    }       
+    
     private void determineAdoptionStatus(Person person) {
         int T = SimulationSettings.getInstance().getT();
-        ArrayList<String[]> parsedExposures = new ArrayList<String[]>();
-        String delimiter = ":";
+        ArrayList<Integer> exposures = person.getExposureList();
+        ArrayList<Integer> exposureTimestamps = person.getExposureTimestamps();
+        Person mostRecentExposer = null;
         int genCount = 0;
         int peerCount = 0;
         int genTime = 0;
         int peerTime = 0;
-        Person recentExposer = null;
-        for (String exposure:person.getExposureHashSet()) {
-            parsedExposures.add(exposure.split(delimiter));
-        }
 
-        for (int i = 0; i < parsedExposures.size(); i++) {
-            if (parsedExposures.get(i)[0].startsWith("SE"))  {
-                peerCount++;
-                if (Integer.parseInt(parsedExposures.get(i)[2]) > peerTime) {
-                    peerTime = Integer.parseInt(parsedExposures.get(i)[2]);
-                    recentExposer = this.people[Integer.parseInt(parsedExposures.get(i)[1])];
-                }
-            }
-            else if (parsedExposures.get(i)[0].startsWith("GE")) {
+        int indexer = 0;
+        for (Integer exposure:exposures) {
+            if (exposure == Integer.MAX_VALUE) {
                 genCount++;
-                if (Integer.parseInt(parsedExposures.get(i)[2]) > genTime) {
-                    genTime = Integer.parseInt(parsedExposures.get(i)[2]);
+                if (exposureTimestamps.get(indexer) > genTime) genTime = exposureTimestamps.get(indexer);
+            }
+            else {
+                peerCount++;
+                if (exposureTimestamps.get(indexer) > peerTime) {
+                    peerTime = exposureTimestamps.get(indexer);
+                    mostRecentExposer = this.people[exposure];
                 }
             }
+            indexer++;
         }
 
-        if (genCount >= T && peerCount ==0) {
+        if (genCount >= T && peerCount == 0) {
             person.setAdoptStatus(Person.onlyGENERAL);
         }
+
         if (peerCount >= T && genCount == 0) {
             person.setAdoptStatus(Person.onlySOCIAL);
-            this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-            this.onlySocialEdges++;
-            
+            this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
         }
-        if (genCount == 1 && peerCount == 1) {
 
-            if (peerTime > genTime) {
+        if (genCount == 1 && peerCount > 1) {
+            person.setAdoptStatus(Person.onlySOCIAL);
+            this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
+        }
+
+        if (genCount == 1 && peerCount == 1) {
+            if (peerTime >= genTime) {
                 person.setAdoptStatus(Person.mixedSOCIAL);
-                this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-                this.mixedSocialEdges++;
+                this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
             }
             else if (genTime > peerTime) {
                 person.setAdoptStatus(Person.mixedGENERAL);
             }
-        }
-        if (genCount == 1 && peerCount > 1) {
-            person.setAdoptStatus(Person.onlySOCIAL);
-            this.g.findEdge(person, recentExposer).setEdgeType(Connection.SOCIAL);
-            this.simulSocialEdges++;
-
         }
     }
 
@@ -444,8 +450,11 @@ public class Simulations {
         }
     }
 
-    public void removeSocialEdges(int edgeType) {
+    public void removeEdgeByType(int edgeType) {
+        int counterRemoved = 0;
+        int counterTotalEdges = 0;
         for (Connection edge:this.g.getEdges()) {
+            
 
             if (edgeType==Connection.SOCIAL) {
                 if (edge.isSOCIAL()) {
@@ -456,8 +465,11 @@ public class Simulations {
             if (edgeType==Connection.BASIC) {
                 if (edge.isBASIC()) {
                     this.g.removeEdge(edge);
+                    counterRemoved++;
+
                 }
             }
+        counterTotalEdges++;
         }
     }
 
@@ -494,46 +506,16 @@ public class Simulations {
         int counter = 0;
         for (Object clusterObject:negativeClusters) {
             Set cluster = (Set)clusterObject;
-            clusterSize[counter] = cluster.size();
-            clusterSizeSquared[counter] = (cluster.size() * cluster.size());
+            this.clusterSize[counter] = cluster.size();
+            this.clusterSizeSquared[counter] = (cluster.size() * cluster.size());
+            counter++;
         }
     }
-    
+
     public int getClusterCount() {
         return this.clusterCount;
     }
 
-    private void measureClusters(){
-        int graphCounter = 0;
-        this.avgClusterDistances = new ArrayList<Double>();
-        this.clusterSizeSquared = new int[1000];
-        this.clusterSize = new int[1000];
-        for (Graph<Person, Connection> SusceptibleGraph:MultiGraphs) {
-            graphCounter++;
-            double distanceSum = 0;
-            for (Person person:SusceptibleGraph.getVertices()) {
-                Transformer<Person, Double> distances = DistanceStatistics.averageDistances(SusceptibleGraph);
-                distanceSum = distanceSum + (1/distances.transform(person));
-            }
-            clusterSize[graphCounter] = SusceptibleGraph.getVertexCount();
-            clusterSizeSquared[graphCounter] = (SusceptibleGraph.getVertexCount() * SusceptibleGraph.getVertexCount());
-            double distanceAverage = distanceSum/SusceptibleGraph.getVertexCount();
-            avgClusterDistances.add(distanceAverage);
-            //System.out.println("Susceptible Cluster " + "#" + graphCounter +" // "+"Size = "+ SusceptibleGraph.getVertexCount()+" // "+"Average Distance = "+distanceAverage);
-        }
-    }
-
-
-    public double getMaxDistance(){
-        double maxValue = 0;
-        for (int maxCounter = 0; maxCounter < avgClusterDistances.size(); maxCounter++) {
-            if (this.avgClusterDistances.get(maxCounter) > maxValue) {
-                if (this.avgClusterDistances.get(maxCounter).isNaN()) continue;
-                else maxValue = this.avgClusterDistances.get(maxCounter);
-            }
-        }
-        return maxValue;
-    }
 
     public double getPredictedOutbreakSize() {
         return this.predictedOutbreakSize;
@@ -563,7 +545,7 @@ public class Simulations {
 
     private void plotGraph() {
         Layout<Person, Connection> layout = new KKLayout<Person, Connection>(this.g);
-        layout.setSize(new Dimension(900,900));
+        layout.setSize(new Dimension(500,500));
 
 
         BasicVisualizationServer<Person,Connection> vv =
@@ -572,8 +554,10 @@ public class Simulations {
         Transformer<Person,Paint> vertexColor = new Transformer<Person,Paint>() {
             public Paint transform(Person person) {
                 if(person.getAdoptStatus() == Person.onlySOCIAL) return Color.RED;
-                if(person.getAdoptStatus() == Person.mixedSOCIAL) return Color.RED;
-                return Color.BLUE;
+                if(person.getAdoptStatus() == Person.mixedSOCIAL) return Color.PINK;
+                if(person.getAdoptStatus() == Person.onlyGENERAL) return Color.YELLOW;
+                if(person.getAdoptStatus() == Person.mixedGENERAL) return Color.BLUE;
+                return Color.BLACK;
             }
         };
         
@@ -586,7 +570,7 @@ public class Simulations {
 
         Transformer<Person,Shape> vertexSize = new Transformer<Person,Shape>(){
             public Shape transform(Person person){
-                Ellipse2D circle = new Ellipse2D.Double(-5, -5, 5, 5);
+                Ellipse2D circle = new Ellipse2D.Double(-10, -10, 10, 10);
                 return circle;
             }
         };
@@ -594,7 +578,7 @@ public class Simulations {
         vv.getRenderContext().setVertexShapeTransformer(vertexSize);
         vv.getRenderContext().setVertexFillPaintTransformer(vertexColor);
         vv.getRenderContext().setEdgeFillPaintTransformer(edgeColor);
-        vv.setPreferredSize(new Dimension(950, 950));
+        vv.setPreferredSize(new Dimension(550, 550));
         vv.getRenderContext().setVertexLabelTransformer(new ToStringLabeller());
         JFrame frame = new JFrame("Simple Graph View");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

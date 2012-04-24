@@ -1,6 +1,6 @@
 package com.salathegroup.socialcontagion;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 
 
 public class Person {
@@ -10,7 +10,8 @@ public class Person {
     private boolean tempValue = false;
     private int healthStatus;
     private int adoptStatus;
-    private HashSet<String> exposures;
+    private ArrayList<Integer> exposures;
+    private ArrayList<Integer> exposureTimestamps;
 
     public static final int SUSCEPTIBLE = 1;
     public static final int INFECTED = 2;
@@ -29,7 +30,8 @@ public class Person {
         this.vaccinationOpinion = vaccinationOpinion;
         this.healthStatus = Person.SUSCEPTIBLE;
         this.adoptStatus = Person.NONE;
-        this.exposures = new HashSet<String>();
+        this.exposures = new ArrayList<Integer>();
+        this.exposureTimestamps = new ArrayList<Integer>();
     }
 
     public String toString() {
@@ -43,21 +45,30 @@ public class Person {
     public String getID() {
         return this.id;
     }
+    
+    public Integer getIntID() {
+        return Integer.parseInt(this.id);
+    }
 
     public void setVaccinationOpinion(String vaccinationOpinion) {
         this.vaccinationOpinion = vaccinationOpinion;
     }
 
-    public void increaseGeneralExposures(String exposureSource) {
+    public void increaseGeneralExposures(Integer exposureSource, Integer exposureTimestamp) {
         this.exposures.add(exposureSource);
+        this.exposureTimestamps.add(exposureTimestamp);
     }
 
     public int getNumberOfExposures() {
         return this.exposures.size();
     }
 
-    public HashSet<String> getExposureHashSet() {
+    public ArrayList<Integer> getExposureList() {
         return this.exposures;
+    }
+
+    public ArrayList<Integer> getExposureTimestamps() {
+        return this.exposureTimestamps;
     }
 
     public void setTempValue(boolean b) {
