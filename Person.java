@@ -20,9 +20,8 @@ public class Person {
     
     public static final int NONE = 1 ;
     public static final int onlySOCIAL = 2;
-    public static final int onlyGENERAL = 3;
-    public static final int mixedSOCIAL = 4 ;
-    public static final int mixedGENERAL = 5;
+    public static final int MIXED = 3;
+    public static final int onlyGENERAL = 4 ;
 
 
     public Person(String id, String vaccinationOpinion) {
@@ -119,13 +118,10 @@ public class Person {
         return this.adoptStatus==Person.onlyGENERAL;
     }
     
-    public boolean ismixedSOCIAL() {
-        return this.adoptStatus==Person.mixedSOCIAL;
+    public boolean isMIXED() {
+        return this.adoptStatus==Person.MIXED;
     }
 
-    public boolean ismixedGENERAL() {
-        return this.adoptStatus==Person.mixedGENERAL;
-    }
 
 }
 

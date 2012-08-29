@@ -8,130 +8,164 @@ import java.util.ArrayList;
 
 public class SimulationManager {
 
+    private PrintWriter output;
+
     public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
-         double rewire = Double.parseDouble(args[0]);
-        // sm.fileReading("/Users/ellscampbell/Desktop/heatmaps (only social edges)/pred outbreaks/p90");
+        //sm.edgeTypes();
+        //sm.heatmaps();
+//        double rewire = Double.parseDouble(args[0]);
+  //      int threshold = Integer.parseInt(args[1]);
+    //    sm.theClusterHeatmaps(rewire,threshold);
+        //sm.adoptionTypes();
+        //sm.testHerdImmunity();
+       //  sm.degreeDIST();
+         //sm.edgeTypes();
 
-
-         sm.theClusterHeatmaps(rewire);
-        // sm.predictedOutbreaks();
-        // sm.predictionRatio();
-        // sm.playground();
-        // sm.edgeRemoval();
-        // sm.adoptionStatus();
-        // sm.edgeRemoval();
-        // sm.runOutbreaks_vs_VaccineCoverage_vs_Threshold();
-        // sm.runOutbreaksVsVaccinationCoverage();
-        // sm.runOutbreaksLikelihoodVsVaccinationCoverage();
     }
 
-    public void playground() {
-        for (int i = 0; i < 10; i++) {
-            System.out.println(System.currentTimeMillis());
-            Simulations sim = new Simulations();
-            sim.run();
-            System.out.println(System.currentTimeMillis());
+    public void adoptionTypes() {
+        int simCount = 50;
 
+        SimulationSettings.getInstance().setT(2);
+
+
+        double[] rewires = new double[5] ;
+        rewires[0] = 0.90;
+        rewires[1] = 0.50;
+        rewires[2] = 0.25;
+        rewires[3] = 0.10;
+        rewires[4] = 0;
+
+        double[] omegas = new double[3];
+        omegas[0] = 0.01;
+        omegas[1] = 0.001;
+        omegas[2] = 0.0001;
+
+        System.out.println("type," + "freq," + "rewire" + "," + "rge" + "," + "omega");
+        for (int rewire=0; rewire<5; rewire++) {
+            SimulationSettings.getInstance().setRewiringProbability(rewires[rewire]);
+            SimulationSettings.getInstance().setRge(0.00001);
+
+            for (int omegaCounter = 0; omegaCounter<3; omegaCounter++) {
+                SimulationSettings.getInstance().setOmega(omegas[omegaCounter]);
+
+                for (int simID=0; simID<simCount;simID++) {
+
+                    Simulations sim = new Simulations();
+                    sim.run();
+                    System.out.println("general" + "," + sim.getFractionAdoptStatus(Person.onlyGENERAL) + "," + SimulationSettings.getInstance().getRewiringProbability() + "," + SimulationSettings.getInstance().getRge() + "," + SimulationSettings.getInstance().getOmega());
+                    System.out.println("social" + "," + sim.getFractionAdoptStatus(Person.onlySOCIAL) + "," + SimulationSettings.getInstance().getRewiringProbability() + "," + SimulationSettings.getInstance().getRge() + "," + SimulationSettings.getInstance().getOmega());
+                    System.out.println("mixed" + "," + sim.getFractionAdoptStatus(Person.MIXED) + "," + SimulationSettings.getInstance().getRewiringProbability() + "," + SimulationSettings.getInstance().getRge() + "," + SimulationSettings.getInstance().getOmega());
+
+                }
+            }
 
         }
 
     }
 
-    public void predictionRatio() {
-        int numberOfSimulations = 100;
-        SimulationSettings.getInstance().setOmega(0.01);
-        SimulationSettings.getInstance().setRge(0.001);
-        SimulationSettings.getInstance().setInfectionRate(0.20);
+    public void edgeTypes() {
+        int simCount = 50;
+        SimulationSettings.getInstance().setT(2);
 
-        for (int rewireCounter = 0; rewireCounter < 50; rewireCounter++) {
-            double rewire = 0.0 + (0.02 * rewireCounter);
-            SimulationSettings.getInstance().setRewiringProbability(rewire);
+        double[] rewires = new double[5] ;
+        rewires[0] = 0.90;
+        rewires[1] = 0.50;
+        rewires[2] = 0.25;
+        rewires[3] = 0.10;
+        rewires[4] = 0;
 
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
-                Simulations sim = new Simulations();
-                sim.multiBioSims();
+        double[] omegas = new double[3];
+        omegas[0] = 0.01;
+        omegas[1] = 0.001;
+        omegas[2] = 0.0001;
+
+        System.out.println("type," + "freq," + "rewire" + "," + "rge" + "," + "omega");
+        for (int rewire=0; rewire<5; rewire++) {
+            SimulationSettings.getInstance().setRewiringProbability(rewires[rewire]);
+            SimulationSettings.getInstance().setRge(0.00001);
+
+            for (int omegaCounter = 0; omegaCounter<3; omegaCounter++) {
+                SimulationSettings.getInstance().setOmega(omegas[omegaCounter]);
+
+                for (int simID=0; simID<simCount;simID++) {
+
+                    Simulations sim = new Simulations();
+                    sim.run();
+
+                    System.out.println("basic" + "," + sim.getFractionEdgeType(Connection.BASIC) + "," + SimulationSettings.getInstance().getRewiringProbability() + "," + SimulationSettings.getInstance().getRge() + "," + SimulationSettings.getInstance().getOmega());
+                    System.out.println("social" + "," + sim.getFractionEdgeType(Connection.SOCIAL) + "," + SimulationSettings.getInstance().getRewiringProbability() + "," + SimulationSettings.getInstance().getRge() + "," + SimulationSettings.getInstance().getOmega());
+
+                }
             }
         }
+
     }
 
-    public void predictedOutbreaks() {
-        int numberOfSimulations = 100;
-        SimulationSettings.getInstance().setOmega(0.01);
-        SimulationSettings.getInstance().setRge(0.001);
-        SimulationSettings.getInstance().setInfectionRate(0.30);
 
-        for (int rewireCounter = 0; rewireCounter < 50; rewireCounter++) {
-            double rewire = 0 + (0.02 * rewireCounter);
-            SimulationSettings.getInstance().setRewiringProbability(rewire);
-
-            for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
-                Simulations sim = new Simulations();
-                sim.run();
+    public void degreeDIST() {
+        int simCount = 1000;
+        int threshold = 2;
+        int numberOfSusceptibles = 500;
+        SimulationSettings.getInstance().setT(threshold);
+        int[][] degreeCum = new int[simCount][numberOfSusceptibles];
+        for (int i = 0; i < simCount; i++) {
+            Simulations sim = new Simulations();
+            sim.run();
+            degreeCum[i] = sim.recordDegreeDistribution();
+        }
+        String filename = "degDIST,t=" + String.format("%d", threshold);
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new java.io.FileWriter(filename));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        out.println("threshold" + "," + "simID" + "," + "personID" + "," + "degree");
+        for (int sim=0; sim<simCount; sim++) {
+            for (int person=0; person<500; person++) {
+                out.println(threshold + "," + sim + "," + person + "," + degreeCum[sim][person]);
             }
         }
+        out.close();
     }
 
-    public void adoptionStatus() {
-        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01  //  RGE = 0.001 ");
-        System.out.println("Social Adopter" + "," + "mixedSocial Adopter" + "," + "General Adopter" + "mixedGeneral Adopter");
+    public void testHerdImmunity() {
+        SimulationSettings.getInstance().setRewiringProbability(.1);
+        SimulationSettings.getInstance().setT(2);
+        SimulationSettings.getInstance().setRge(0.00001);
+        SimulationSettings.getInstance().setOmega(0.0001);
+        int coverages = 10;
+        double[] epidemicFrequency = new double[coverages];
+        System.out.println("p@" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "RGE@" + SimulationSettings.getInstance().getRge() + " // " + "Omega@" + SimulationSettings.getInstance().getOmega() + " // " + "Threshold@" + SimulationSettings.getInstance().getT());
 
-        int numberOfSimulations = 100;
-        SimulationSettings.getInstance().setOmega(0.01);
-        SimulationSettings.getInstance().setRge(0.001);
+        for (int i = 1; i < coverages; i++) {
+            double negSent = 0.05 * i;
+            System.out.println(negSent);
+            SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(negSent);
 
-        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
             Simulations sim = new Simulations();
             sim.run();
+
+            epidemicFrequency[i-1] = sim.getNumberOfEpidemics();
+        }
+
+        for (int i = 0; i < coverages; i++) {
+            System.out.print(epidemicFrequency[i] + ",");
         }
     }
 
-    public void edgeRemoval() {
-        int numberOfSimulations = 100;
-        SimulationSettings.getInstance().setOmega(0.01);
-        SimulationSettings.getInstance().setRge(0.001);
-        System.out.println("p(rewire) =" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "OMEGA = 0.01 // RGE = 0.001 ");
-        System.out.println("Osize" + ", " + "Osize-BASIC" + ", " + "CC" + ", " + "CC-BASIC" );
 
-        ArrayList<Double[]> outbreakSizes = new ArrayList<Double[]>();
-        ArrayList<Integer[]> clusterCounts = new ArrayList<Integer[]>();
-        for (int simCount = 0; simCount < numberOfSimulations; simCount++) {
-            Double[] outbreakSize;
-            Integer[] clusterCount;
-            outbreakSize = new Double[2];
-            clusterCount = new Integer[2];
-            Simulations sim = new Simulations();
-            sim.run();
-            sim.removeVaccinated();
-            sim.clusters();
-            outbreakSize[0] = sim.getPredictedOutbreakSize();
-            clusterCount[0] = sim.getClusterCount();
-
-            sim.removeEdgeByType(Connection.BASIC);
-            sim.clusters();
-            outbreakSize[1] = sim.getPredictedOutbreakSize();
-            clusterCount[1] = sim.getClusterCount();
-
-
-            System.out.println(outbreakSize[0] + "," + outbreakSize[1]  + "," + clusterCount[0] + "," + clusterCount[1]);
-
-
-            outbreakSizes.add(outbreakSize);
-            clusterCounts.add(clusterCount);
-        }
-    }
-
-    private void theClusterHeatmaps(Double rewire) {
-
-        SimulationSettings.getInstance().setRewiringProbability(rewire);
+    private void theClusterHeatmaps(Double rewire, int threshold) {
 
         int steps = 20;
         double omegaMax = 0.01;
         double omegaStart = 0.0001;
-        double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1))) ;
+        double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1)));
         double rgeMax = 0.01;
         double rgeStart = 0.00001;
-        double rgeSteps = Math.pow(rgeMax/rgeStart, (1.0/(steps-1))) ;
+        double rgeSteps = Math.pow(rgeMax/rgeStart, (1.0/(steps-1)));
 
         double outbreaksHeatmap[][] = new double[steps][steps];
         int clustersHeatmap[][] = new int[steps][steps];
@@ -140,6 +174,9 @@ public class SimulationManager {
         double edgeRemovalOUTBREAKS[][] = new double[steps][steps];
         int edgeRemovalCLUSTERS[][] = new int[steps][steps];
 
+        double social[][] = new double[steps][steps];
+        double general[][] = new double[steps][steps];
+        double mixed[][] = new double[steps][steps];
 
 
         for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
@@ -149,13 +186,18 @@ public class SimulationManager {
                 double rge = rgeStart * Math.pow(rgeSteps,rgeCounter);
                 SimulationSettings.getInstance().setRge(rge);
                 System.out.println(omega + "," + rge);
+                SimulationSettings.getInstance().setT(threshold);
+                SimulationSettings.getInstance().setRewiringProbability(rewire);
                 Simulations sim = new Simulations();
                 sim.run();
-
 
                 outbreaksHeatmap[omegaCounter][rgeCounter] = sim.getPredictedOutbreakSize();
                 clustersHeatmap[omegaCounter][rgeCounter] = sim.getClusterCount();
                 simOutbreaksHeatmap[omegaCounter][rgeCounter] = sim.getSimulatedAverageOutbreak();
+                
+                social[omegaCounter][rgeCounter] = sim.getFractionAdoptStatus(Person.onlySOCIAL);
+                general[omegaCounter][rgeCounter] = sim.getFractionAdoptStatus(Person.onlyGENERAL);
+                mixed[omegaCounter][rgeCounter] = 1 - social[omegaCounter][rgeCounter] - general[omegaCounter][rgeCounter];
                 
                 sim.removeEdgeByType(Connection.BASIC);
                 sim.clusters();
@@ -167,7 +209,58 @@ public class SimulationManager {
             }
         }
 
-        String outbreaksFilename = "predictedOutbreaks" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        String socialFilename = "social" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        PrintWriter outSocial = null;
+        try {
+            outSocial = new PrintWriter(new java.io.FileWriter(socialFilename));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        for (int i = 0; i < steps; i++) {
+            for (int ii = 0; ii < steps; ii++) {
+                if (ii == steps-1) {
+                    outSocial.println(social[i][ii]);
+                }
+                else outSocial.print(social[i][ii] + ",");
+            }
+        }
+        outSocial.close();
+
+        String generalFilename = "general" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        PrintWriter outGeneral = null;
+        try {
+            outGeneral = new PrintWriter(new java.io.FileWriter(generalFilename));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        for (int i = 0; i < steps; i++) {
+            for (int ii = 0; ii < steps; ii++) {
+                if (ii == steps-1) {
+                    outGeneral.println(general[i][ii]);
+                }
+                else outGeneral.print(general[i][ii] + ",");
+            }
+        }
+        outGeneral.close();
+
+        String mixedFilename = "mixed" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        PrintWriter outMixed = null;
+        try {
+            outMixed = new PrintWriter(new java.io.FileWriter(mixedFilename));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        for (int i = 0; i < steps; i++) {
+            for (int ii = 0; ii < steps; ii++) {
+                if (ii == steps-1) {
+                    outMixed.println(mixed[i][ii]);
+                }
+                else outMixed.print(mixed[i][ii] + ",");
+            }
+        }
+        outMixed.close();
+
+        String outbreaksFilename = "predictedOutbreaks" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
         PrintWriter outPredict = null;
         try {
             outPredict = new PrintWriter(new java.io.FileWriter(outbreaksFilename));
@@ -184,7 +277,7 @@ public class SimulationManager {
         }
         outPredict.close();
 
-        String clustersFilename = "clusters" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        String clustersFilename = "clusters" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
         PrintWriter outClusters = null;
         try {
             outClusters = new PrintWriter(new java.io.FileWriter(clustersFilename));
@@ -201,7 +294,7 @@ public class SimulationManager {
         }
         outClusters.close();
 
-        String simulatedFilename = "simulatedOutbreaks" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        String simulatedFilename = "simulatedOutbreaks" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
         PrintWriter outSimulate = null;
         try {
             outSimulate = new PrintWriter(new java.io.FileWriter(simulatedFilename));
@@ -218,7 +311,7 @@ public class SimulationManager {
         }
         outSimulate.close();
 
-        String edgeRemovalOUTFilename = "edgeRemovalOUTBREAKS" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        String edgeRemovalOUTFilename = "edgeRemovalOUTBREAKS" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
         PrintWriter edgeRemovalOUT = null;
         try {
             edgeRemovalOUT = new PrintWriter(new java.io.FileWriter(edgeRemovalOUTFilename));
@@ -235,7 +328,7 @@ public class SimulationManager {
         }
         edgeRemovalOUT.close();
 
-        String edgeRemovalCLUSTERSFilename = "edgeRemovalCLUSTERS" + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
+        String edgeRemovalCLUSTERSFilename = "edgeRemovalCLUSTERS" + "," + String.format("%02d", threshold) + "," + String.format("%.2f", SimulationSettings.getInstance().getRewiringProbability()) + "," + System.currentTimeMillis();
         PrintWriter edgeRemovalCLUST = null;
         try {
             edgeRemovalCLUST = new PrintWriter(new java.io.FileWriter(edgeRemovalCLUSTERSFilename));
@@ -255,6 +348,7 @@ public class SimulationManager {
     }
 
     private void heatmaps() {
+        //local
         int numberOfSimulations = 1;
         int steps = 20;
         ArrayList<double[][]> outbreaks = new ArrayList<double[][]>();
@@ -269,7 +363,7 @@ public class SimulationManager {
             double omegaStart = 0.0001;
             double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1))) ;
             double rgeMax = 0.01;
-            double rgeStart = 0.0001;
+            double rgeStart = 0.00001;
             double rgeSteps = Math.pow(rgeMax/rgeStart, (1.0/(steps-1))) ;
 
             for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
@@ -322,90 +416,6 @@ public class SimulationManager {
         }
     }
 
-
-
-    private void runOutbreaks_vs_VaccineCoverage_vs_Threshold() {
-        int numberOfSimulations = 500;
-        SimulationSettings.getInstance().setRge(0.01);
-        SimulationSettings.getInstance().setOmega(0.15);
-        int minOutbreakSize = 10;
-
-        for (int i = 1; i < 6; i++) {
-            SimulationSettings.getInstance().setT(i);
-            System.out.println(SimulationSettings.getInstance().getT());
-
-            for (int ii = 0; ii < 10; ii++) {
-                double vaccinationCoverage = 0.5 + (0.05*ii);
-                SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(1.0 - vaccinationCoverage);
-                int numberOfOutbreaks = 0;
-
-                for (int iii = 0; iii < numberOfSimulations; iii++) {
-                    Simulations sim = new Simulations();
-                    sim.run();
-                    if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
-                }
-                System.out.println(vaccinationCoverage + "\t" + (double)numberOfOutbreaks/numberOfSimulations);
-            }
-        }
-    }
-
-    private void runOutbreaksVsVaccinationCoverage() {
-        int numberOfSimulations = 500;
-        SimulationSettings.getInstance().setRge(0.01);
-        SimulationSettings.getInstance().setOmega(1.0);
-        int minOutbreakSize = 10;
-        for (int i = 0; i < 10; i++) {
-            double vaccinationCoverage = 0.5 + (0.05*i);
-            SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(1.0-vaccinationCoverage);
-            int numberOfOutbreaks = 0;
-            for (int ii = 0; ii < numberOfSimulations; ii++) {
-                Simulations sim = new Simulations();
-                sim.run();
-                if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
-            }
-            System.out.println(vaccinationCoverage + "\t" + (double)numberOfOutbreaks/numberOfSimulations);
-        }
-    }
-
-    private void runOutbreaksLikelihoodVsVaccinationCoverage() {
-        int numberOfSimulations = 2000;
-        SimulationSettings.getInstance().setRge(0.01);
-        SimulationSettings.getInstance().setOmega(0);
-        int minOutbreakSize = 10;
-        SimulationSettings.getInstance().setOutbreakSizeToStopSimulation(minOutbreakSize);
-        int numberOfVaccinationCoverages = 10;
-        double[] omega0 = new double[numberOfVaccinationCoverages];
-        for (int i = 0; i < numberOfVaccinationCoverages; i++) {
-            double vaccinationCoverage = 0.5 + (0.05*i);
-            SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(1.0-vaccinationCoverage);
-            int numberOfOutbreaks = 0;
-            for (int ii = 0; ii < numberOfSimulations; ii++) {
-                Simulations sim = new Simulations();
-                sim.run();
-                if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
-            }
-            System.out.println(vaccinationCoverage + "\t" + (double)numberOfOutbreaks/numberOfSimulations);
-            omega0[i] = (double)numberOfOutbreaks/numberOfSimulations;
-        }
-        // now that we have the baseline, run the sims
-        for (int j = 0; j < 10; j++) {
-            double omega = (j * 0.1) + 0.1;
-            SimulationSettings.getInstance().setOmega(omega);
-            System.out.println("omega = " + omega);
-            for (int i = 0; i < numberOfVaccinationCoverages; i++) {
-                double vaccinationCoverage = 0.5 + (0.05*i);
-                SimulationSettings.getInstance().setMinimumLevelOfNegativeVaccinationOpinion(1.0-vaccinationCoverage);
-                int numberOfOutbreaks = 0;
-                for (int ii = 0; ii < numberOfSimulations; ii++) {
-                    Simulations sim = new Simulations();
-                    sim.run();
-                    if (sim.getOutbreakSize() >= minOutbreakSize) numberOfOutbreaks++;
-                }
-                double outbreakProbability =  (double)numberOfOutbreaks/numberOfSimulations;
-                System.out.println(vaccinationCoverage + "\t" + outbreakProbability / omega0[i]);
-            }
-        }
-    }
 
     private void fileReading(String pathToDir) throws IOException {
         File dir = new File(pathToDir);

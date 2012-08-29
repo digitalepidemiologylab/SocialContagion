@@ -7,8 +7,8 @@ public class SimulationSettings {
 
     private int numberOfPeople = 5000;
     private int k = 10;
-    private double rewiringProbability = 0.90;
-    private double rge = 0.001;
+    private double rewiringProbability = 0.02;
+    private double rge = 0.0001;
     private int T = 2;
     private double omega = 0.01;
     private double minimumLevelOfNegativeVaccinationOpinion = 0.1;

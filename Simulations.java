@@ -1,17 +1,9 @@
 package com.salathegroup.socialcontagion;
 
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
-import edu.uci.ics.jung.algorithms.layout.KKLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
-import edu.uci.ics.jung.visualization.BasicVisualizationServer;
-import edu.uci.ics.jung.visualization.decorators.ToStringLabeller;
-import org.apache.commons.collections15.Transformer;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.geom.Ellipse2D;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -39,10 +31,13 @@ public class Simulations {
     int clusterCount;
     ArrayList<Double> avgClusterDistances;
     ArrayList<Integer> outbreakSizeList;
-    int onlySocialEdges = 0;
-    int mixedSocialEdges = 0;
-    int simulSocialEdges = 0;
     double simulatedAverageOutbreak = 0;
+    int epidemicCounter = 0;
+    int basic = 0;
+    int social = 0;
+    int mixed = 0;
+    int socialONLY = 0;
+    int generalONLY = 0;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -55,48 +50,39 @@ public class Simulations {
         this.runSocialTimesteps();
         this.removeVaccinated();
         this.clusters();
+        this.calculateFractionEdgeType();
         this.predictOutbreakSize();
         this.multiBioSims();
     }
 
+    public int[] recordDegreeDistribution() {
+        int[] degree = new int[500];
+        
+        int counter = 0;
+        for (Person person:this.g.getVertices()) {
+            degree[counter] = this.g.degree(person);
+            counter++;
+        }
 
-
+        return degree;
+    }
 
     public void recordGraph() {
-        this.initGraph();
-        this.runSocialTimesteps();
-        this.removeVaccinated();
+        String[][] edges = new String[this.g.getEdgeCount()][6];
 
-        String[][] nodes = new String[this.g.getVertexCount()][2];
-        String[][] edges = new String[this.g.getEdgeCount()][3];
-
-        int nodeCounter = 0;
-        for (Person person:this.g.getVertices()) {
-            nodes[nodeCounter][0] = person.getID();
-            nodes[nodeCounter][1] = Integer.toString(person.getAdoptStatus());
-            nodeCounter++;
-        }
 
         int edgeCounter = 0;
         for (Connection connection:this.g.getEdges()) {
             edges[edgeCounter][0] = connection.getSource().getID();
             edges[edgeCounter][1] = connection.getDestination().getID();
             edges[edgeCounter][2] = Integer.toString(connection.getEdgeType());
+            edges[edgeCounter][3] = Integer.toString(connection.getSource().getAdoptStatus());
+            edges[edgeCounter][4] = connection.getRewire();
+            edges[edgeCounter][5] = connection.getSource().getVaccinationOpinion();
             edgeCounter++;
         }
 
-        // write nodeList + adoptionStatus
         PrintWriter out = null;
-        try {
-            out = new PrintWriter(new java.io.FileWriter("nodes"));
-        }catch (IOException e) {
-            e.printStackTrace();
-        }
-        for (int node = 0; node < nodes.length; node++) {
-            out.println(nodes[node][0] + "," + nodes[node][1]);
-        }
-        out.close();
-
 
         // write edgeList + edgeType
         out = null;
@@ -107,14 +93,13 @@ public class Simulations {
         }
 
         for (int edge = 0; edge < edges.length; edge++) {
-            out.println(edges[edge][0] + "," + edges[edge][1] + "," + edges[edge][2]);
+            out.println(edges[edge][0] + "," + edges[edge][1] + "," + edges[edge][2] + "," + edges[edge][3] + "," + edges[edge][4] + "," + edges[edge][5]);
         }
         out.close();
     }
 
     private void runSocialTimesteps() {
         while(true) {
-            //JOptionPane.showInputDialog("Step Forward");
             if (this.socialTimestep==0) this.opinionIsSpreading = true;
             if (this.opinionIsSpreading) {
                 this.generalExposure();
@@ -126,13 +111,9 @@ public class Simulations {
                     this.vaccinate();
                 }
             }
-            //plotGraph();
             this.socialTimestep++;
             if (!this.opinionIsSpreading) break;
-
         }
-
-
     }
 
     private void runBiologicalTimesteps() {
@@ -147,21 +128,24 @@ public class Simulations {
 
     public void multiBioSims() {
         outbreakSizeList = new ArrayList<Integer>();
-
-        int simCount = 20;
+        epidemicCounter = 0;
+        int simCount = 50;
         for (int i = 0; i < simCount; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();
             outbreakSizeList.add(this.getOutbreakSize());
             resetNegativeOpinions();
+            if (this.outbreakSize > 25) epidemicCounter++;
         }
-
         int outbreakSum = 0;
         for (int i = 0; i < simCount; i++) {
             outbreakSum = outbreakSum + outbreakSizeList.get(i);
         }
         this.simulatedAverageOutbreak = outbreakSum/simCount;
-
+    }
+    
+    public int getNumberOfEpidemics() {
+        return this.epidemicCounter;
     }
 
     public double getSimulatedAverageOutbreak() {
@@ -179,16 +163,34 @@ public class Simulations {
         return (double)counter / numberOfPeople;
     }
 
-    public double getFractionAdoptStatus(int adoptStatus) {
-        int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
+    private void calculateFractionEdgeType() {
+        int social = 0;
+        int basic = 0;
+        int edgeCount = this.g.getEdgeCount();
+        for (Connection edge:this.g.getEdges()) {
+            if (edge.isSOCIAL()) social++;
+            if (edge.isBASIC()) basic++;
+        }
+        this.social = social;
+        this.basic = basic;
+    }
+
+    public double getFractionEdgeType(int type) {
         int counter = 0;
-        for (int i = 0; i<numberOfPeople;i++) {
+        if (type==Connection.BASIC) counter = this.basic;
+        if (type==Connection.SOCIAL) counter = this.social;
+        return (double)counter/this.g.getEdgeCount();
+    }
+
+
+    public double getFractionAdoptStatus(int adoptStatus) {
+        int counter = 0;
+        for (int i = 0; i<5000;i++) {    //don't forget to loop through ALL individuals, not just the first 500!
             if (adoptStatus == Person.onlyGENERAL && this.people[i].isGENERAL()) counter++;
             if (adoptStatus == Person.onlySOCIAL && this.people[i].isSOCIAL()) counter++;
-            if (adoptStatus == Person.mixedGENERAL && this.people[i].ismixedGENERAL()) counter++;
-            if (adoptStatus == Person.mixedSOCIAL && this.people[i].ismixedSOCIAL()) counter++;
+            if (adoptStatus == Person.MIXED && this.people[i].isMIXED()) counter++;
         }
-        return (double)counter/numberOfPeople;
+        return (double)counter/this.g.getVertexCount();
     }
 
     private void infectRandomIndexCase() {
@@ -231,10 +233,13 @@ public class Simulations {
                 if (random.nextDouble() > numberOfPeopleToExpose) break;
             }
             Person nextExposure = this.people[random.nextInt(numberOfPeople)];
-            if (nextExposure.getNumberOfExposures() < T) {
+
+            if (nextExposure.getNumberOfExposures() < T)  {
                 nextExposure.increaseGeneralExposures(Integer.MAX_VALUE, this.socialTimestep);
-                numberOfPeopleToExpose--;
             }
+
+            numberOfPeopleToExpose--;
+
 
         }
         //  LOGIC OF GENERAL EXPOSURES
@@ -253,8 +258,12 @@ public class Simulations {
             for (Person neighbour:this.g.getNeighbors(person)) {
                 if (neighbour.getVaccinationOpinion().equals("-")) {
                     if (person.getExposureList().contains(neighbour.getIntID())) continue;
-                    else if (this.random.nextDouble() < omega && person.getExposureList().size() < 2) {
+                    else if (this.random.nextDouble() < omega) {
+                        if (person.getExposureList().size() < SimulationSettings.getInstance().getT())  {
                         person.increaseGeneralExposures(neighbour.getIntID(), this.socialTimestep);
+                        this.g.findEdge(person, neighbour).setEdgeType(Connection.SOCIAL);
+                        }
+
                     }
                 }
             }
@@ -267,69 +276,61 @@ public class Simulations {
         for (Person person:this.g.getVertices()) {
             if (person.getNumberOfExposures() >= T) {
                 person.setTempValue(true);
-                //System.out.println(person.getID() + "//" + person.getExposureList().get(0) + "//" + person.getExposureTimestamps().get(0));
-                //System.out.println(person.getID() + "//" + person.getExposureList().get(1) + "//" + person.getExposureTimestamps().get(1));
+//                System.out.println(person.getID() + "//" + person.getExposureList().get(0) + "//" + person.getExposureTimestamps().get(0));
+//                System.out.println(person.getID() + "//" + person.getExposureList().get(1) + "//" + person.getExposureTimestamps().get(1));
             }
         }
         for (Person person:this.g.getVertices()) {
             if (person.getTempValue()) {
                 person.setTempValue(false);
                 this.setAntiVaccinationOpinion(person);
-                this.determineAdoptionStatus(person);
+                this.assignAdoptionStatus(person);
 
             }
         }
     }       
     
-    private void determineAdoptionStatus(Person person) {
+    private void assignAdoptionStatus(Person person) {
+        
         int T = SimulationSettings.getInstance().getT();
-        ArrayList<Integer> exposures = person.getExposureList();
-        ArrayList<Integer> exposureTimestamps = person.getExposureTimestamps();
-        Person mostRecentExposer = null;
-        int genCount = 0;
-        int peerCount = 0;
-        int genTime = 0;
-        int peerTime = 0;
+        int numberOfPeople = SimulationSettings.getInstance().getNumberOfPeople();
 
-        int indexer = 0;
-        for (Integer exposure:exposures) {
-            if (exposure == Integer.MAX_VALUE) {
-                genCount++;
-                if (exposureTimestamps.get(indexer) > genTime) genTime = exposureTimestamps.get(indexer);
+        if (T == 2) {
+            int exposerONE = person.getExposureList().get(0);
+            int exposerTWO = person.getExposureList().get(1);
+    //        System.out.println(exposerONE + "//" + exposerTWO);
+
+            if (exposerONE > numberOfPeople && exposerTWO > numberOfPeople) {
+                person.setAdoptStatus(Person.onlyGENERAL);
             }
-            else {
-                peerCount++;
-                if (exposureTimestamps.get(indexer) > peerTime) {
-                    peerTime = exposureTimestamps.get(indexer);
-                    mostRecentExposer = this.people[exposure];
-                }
+
+            if (exposerONE > numberOfPeople && exposerTWO < numberOfPeople) {
+                person.setAdoptStatus(Person.MIXED);
             }
-            indexer++;
-        }
 
-        if (genCount >= T && peerCount == 0) {
-            person.setAdoptStatus(Person.onlyGENERAL);
-        }
-
-        if (peerCount >= T && genCount == 0) {
-            person.setAdoptStatus(Person.onlySOCIAL);
-            this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
-        }
-
-        if (genCount == 1 && peerCount > 1) {
-            person.setAdoptStatus(Person.onlySOCIAL);
-            this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
-        }
-
-        if (genCount == 1 && peerCount == 1) {
-            if (peerTime >= genTime) {
-                person.setAdoptStatus(Person.mixedSOCIAL);
-                this.g.findEdge(person, mostRecentExposer).setEdgeType(Connection.SOCIAL);
+            if (exposerONE < numberOfPeople && exposerTWO > numberOfPeople) {
+                person.setAdoptStatus(Person.MIXED);
             }
-            else if (genTime > peerTime) {
-                person.setAdoptStatus(Person.mixedGENERAL);
+
+            if (exposerONE < numberOfPeople && exposerTWO < numberOfPeople) {
+                person.setAdoptStatus(Person.onlySOCIAL);
             }
         }
+
+        if (T==1) {
+            int exposer = person.getExposureList().get(0); //0 is the first index of the exposure array
+
+            //        System.out.println(exposerONE + "//" + exposerTWO);
+
+            if (exposer > numberOfPeople) {
+                person.setAdoptStatus(Person.onlyGENERAL);
+            }
+            if (exposer < numberOfPeople ) {
+                person.setAdoptStatus(Person.onlySOCIAL);
+            }
+
+        }
+
     }
 
     private void setAntiVaccinationOpinion(Person person) {
@@ -430,6 +431,7 @@ public class Simulations {
                     while (this.g.isNeighbor(source,newDestination) || source.equals(newDestination));
                     this.g.removeEdge(edge);
                     this.g.addEdge(new Connection(edgeCounter, source, newDestination, Connection.BASIC),source,newDestination);
+                    this.g.findEdge(source, newDestination).setRewire();
                 }
                 // connections array is populated AFTER rewiring
 
@@ -543,49 +545,7 @@ public class Simulations {
         return this.outbreakSize;
     }
 
-    private void plotGraph() {
-        Layout<Person, Connection> layout = new KKLayout<Person, Connection>(this.g);
-        layout.setSize(new Dimension(500,500));
 
-
-        BasicVisualizationServer<Person,Connection> vv =
-                new BasicVisualizationServer<Person,Connection>(layout);
-
-        Transformer<Person,Paint> vertexColor = new Transformer<Person,Paint>() {
-            public Paint transform(Person person) {
-                if(person.getAdoptStatus() == Person.onlySOCIAL) return Color.RED;
-                if(person.getAdoptStatus() == Person.mixedSOCIAL) return Color.PINK;
-                if(person.getAdoptStatus() == Person.onlyGENERAL) return Color.YELLOW;
-                if(person.getAdoptStatus() == Person.mixedGENERAL) return Color.BLUE;
-                return Color.BLACK;
-            }
-        };
-        
-        Transformer<Connection, Paint> edgeColor = new Transformer<Connection, Paint>() {
-            public Paint transform(Connection connection) {
-                if(connection.getEdgeType() == Connection.SOCIAL) return Color.RED;
-                return Color.GRAY;
-            }
-        };
-
-        Transformer<Person,Shape> vertexSize = new Transformer<Person,Shape>(){
-            public Shape transform(Person person){
-                Ellipse2D circle = new Ellipse2D.Double(-10, -10, 10, 10);
-                return circle;
-            }
-        };
-
-        vv.getRenderContext().setVertexShapeTransformer(vertexSize);
-        vv.getRenderContext().setVertexFillPaintTransformer(vertexColor);
-        vv.getRenderContext().setEdgeFillPaintTransformer(edgeColor);
-        vv.setPreferredSize(new Dimension(550, 550));
-        vv.getRenderContext().setVertexLabelTransformer(new ToStringLabeller());
-        JFrame frame = new JFrame("Simple Graph View");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(vv);
-        frame.pack();
-        frame.setVisible(true);
-    }
 
 
 }

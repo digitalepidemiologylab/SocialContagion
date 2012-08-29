@@ -4,6 +4,7 @@ package com.salathegroup.socialcontagion;
 public class Connection {
 
     private int edgeType;
+    private String rewire;
     private Person source;
     private Person destination;
     private int id;
@@ -17,6 +18,7 @@ public class Connection {
         this.destination = destination;
         this.source = source;
         this.edgeType = edgeType;
+        this.rewire = Integer.toString(0);
     }
 
     public boolean isSOCIAL() {
@@ -33,6 +35,14 @@ public class Connection {
 
     public void setID(int id) {
         this.id = id;
+    }
+
+    public void setRewire() {
+        this.rewire = Integer.toString(1);
+    }
+
+    public String getRewire() {
+        return this.rewire;
     }
 
     public int getID() {
