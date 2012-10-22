@@ -1,10 +1,7 @@
 package com.salathegroup.socialcontagion;
-
 import java.util.ArrayList;
 
-
 public class Person {
-
     private String id;
     private String vaccinationOpinion;
     private boolean tempValue = false;
@@ -12,17 +9,14 @@ public class Person {
     private int adoptStatus;
     private ArrayList<Integer> exposures;
     private ArrayList<Integer> exposureTimestamps;
-
     public static final int SUSCEPTIBLE = 1;
     public static final int INFECTED = 2;
     public static final int RESISTANT = 3;
     public static final int VACCINATED = 4;
-    
     public static final int NONE = 1 ;
     public static final int onlySOCIAL = 2;
     public static final int MIXED = 3;
     public static final int onlyGENERAL = 4 ;
-
 
     public Person(String id, String vaccinationOpinion) {
         this.id = id;
@@ -121,8 +115,6 @@ public class Person {
     public boolean isMIXED() {
         return this.adoptStatus==Person.MIXED;
     }
-
-
 }
 
 

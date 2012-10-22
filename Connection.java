@@ -1,17 +1,13 @@
 package com.salathegroup.socialcontagion;
 
-
 public class Connection {
-
     private int edgeType;
     private String rewire;
     private Person source;
     private Person destination;
     private int id;
-
     public static final int BASIC = 1;
     public static final int SOCIAL = 2;
-
 
     public Connection(int id, Person source, Person destination, int edgeType) {
         this.id = id;
@@ -60,6 +56,4 @@ public class Connection {
     public int getEdgeType() {
         return this.edgeType;
     }
-
-
 }
