@@ -100,4 +100,5 @@ public class SimulationSettings {
     public void setOutbreakSizeToStopSimulation(int outbreakSizeToStopSimulation) {
         this.outbreakSizeToStopSimulation = outbreakSizeToStopSimulation;
     }
+
 }

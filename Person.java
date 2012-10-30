@@ -34,11 +34,11 @@ public class Person {
     public String getVaccinationOpinion() {
         return this.vaccinationOpinion;
     }
-    
+
     public String getID() {
         return this.id;
     }
-    
+
     public Integer getIntID() {
         return Integer.parseInt(this.id);
     }
@@ -79,7 +79,7 @@ public class Person {
     public void setAdoptStatus(int adoptStatus) {
         this.adoptStatus = adoptStatus;
     }
-    
+
     public int getAdoptStatus() {
         return this.adoptStatus;
     }
@@ -95,7 +95,7 @@ public class Person {
     public boolean isResistant() {
         return this.healthStatus==Person.RESISTANT;
     }
-    
+
     public boolean isVaccinated() {
         return this.healthStatus==Person.VACCINATED;
     }
@@ -103,15 +103,15 @@ public class Person {
     public boolean isNONE() {
         return this.adoptStatus==Person.NONE;
     }
-    
+
     public boolean isSOCIAL() {
         return this.adoptStatus==Person.onlySOCIAL;
     }
-    
+
     public boolean isGENERAL() {
         return this.adoptStatus==Person.onlyGENERAL;
     }
-    
+
     public boolean isMIXED() {
         return this.adoptStatus==Person.MIXED;
     }

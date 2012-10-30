@@ -3,7 +3,6 @@ package com.salathegroup.socialcontagion;
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.SparseGraph;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -42,6 +41,9 @@ public class Simulations {
     public void run() {
         this.initGraph();
         this.runSocialTimesteps();
+        this.vaccinate();
+        this.clusters();
+        this.multiBioSims();
     }
 
     private void initGraph() {
@@ -321,7 +323,7 @@ public class Simulations {
     public void multiBioSims() {
         outbreakSizeList = new ArrayList<Integer>();
         epidemicCounter = 0;
-        int simCount = 50;
+        int simCount = 10000;
         for (int i = 0; i < simCount; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();

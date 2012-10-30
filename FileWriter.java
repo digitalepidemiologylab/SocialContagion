@@ -2,9 +2,7 @@ package com.salathegroup.socialcontagion;
 
 import java.io.BufferedWriter;
 import java.io.File;
-/**
- * @author Marcel Salathe
- */
+
 public class FileWriter {
 
     private String fileName;

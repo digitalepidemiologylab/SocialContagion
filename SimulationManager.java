@@ -9,17 +9,17 @@ public class SimulationManager {
     public static void main(String[] args) throws IOException {
         SimulationManager sm = new SimulationManager();
 
-         // sm.localHeatmaps();
-        // sm.testHerdImmunity();
-       // sm.edgeTypes();
-      // sm.degreeDIST();
+        // sm.localHeatmaps();
+         sm.testHerdImmunity();
+        // sm.edgeTypes();
+        // sm.degreeDIST();
 
         // sm.onlyGeneral();
-       // sm.generalR0();
+        // sm.generalR0();
 
-        double rewire = Double.parseDouble(args[0]);
-        int threshold = Integer.parseInt(args[1]);
-        sm.theClusterHeatmaps(rewire,threshold);
+//        double rewire = Double.parseDouble(args[0]);
+//        int threshold = Integer.parseInt(args[1]);
+//        sm.theClusterHeatmaps(rewire,threshold);
     }
 
     public void edgeTypes() {
@@ -94,23 +94,27 @@ public class SimulationManager {
     }
 
     public void testHerdImmunity() {
+        //100 networks and social contagion (per p, rge, omega) -- THEN -- 10,000 biological simulations for each network
         SimulationSettings.getInstance().setRewiringProbability(.1);
         SimulationSettings.getInstance().setRge(0.001);
         SimulationSettings.getInstance().setOmega(0.01);
         int coverages = 10;
         double[] epidemicFrequency = new double[coverages];
         System.out.println("p@" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "RGE@" + SimulationSettings.getInstance().getRge() + " // " + "Omega@" + SimulationSettings.getInstance().getOmega());
-        System.out.println("epiFreq, threshold, negSent, coverage");
-        for (int thresh = 1; thresh<3; thresh++) {
-            SimulationSettings.getInstance().setT(thresh);
-            for (int i = 1; i < coverages; i++) {
-                double negSent = 0.05 * i;
-                SimulationSettings.getInstance().getMaxLevelofNegativeSentiment(negSent);
-                double vaccinationCoverage = 1.0 - negSent;
-                Simulations sim = new Simulations();
-                sim.run();
-                epidemicFrequency[i] = sim.getNumberOfEpidemics();
-                System.out.println(epidemicFrequency[i] + "," + thresh + "," + negSent + "," + vaccinationCoverage);
+        System.out.println("epiFreq, threshold, negSent, coverage, simID");
+
+        for (int simCount = 0; simCount<100;simCount++) {
+            for (int thresh = 1; thresh<3; thresh++) {
+                SimulationSettings.getInstance().setT(thresh);
+                for (int i = 1; i < coverages; i++) {
+                    double negSent = 0.05 * i;
+                    SimulationSettings.getInstance().getMaxLevelofNegativeSentiment(negSent);
+                    double vaccinationCoverage = 1.0 - negSent;
+                    Simulations sim = new Simulations();
+                    sim.run();
+                    epidemicFrequency[i] = sim.getNumberOfEpidemics();
+                    System.out.println(epidemicFrequency[i] + "," + thresh + "," + negSent + "," + vaccinationCoverage + "," + simCount);
+                }
             }
         }
     }
