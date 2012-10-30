@@ -1,4 +1,4 @@
-package com.salathegroup.socialcontagion;
+package SocialContagion;
 
 import edu.uci.ics.jung.algorithms.cluster.WeakComponentClusterer;
 import edu.uci.ics.jung.graph.Graph;

@@ -1,4 +1,4 @@
-package com.salathegroup.socialcontagion;
+package SocialContagion;
 
 public class Connection {
     private int edgeType;

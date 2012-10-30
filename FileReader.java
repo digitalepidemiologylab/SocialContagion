@@ -1,4 +1,4 @@
-package com.salathegroup.socialcontagion;
+package SocialContagion;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;

@@ -1,4 +1,4 @@
-package com.salathegroup.socialcontagion;
+package SocialContagion;
 
 import java.io.BufferedWriter;
 import java.io.File;
