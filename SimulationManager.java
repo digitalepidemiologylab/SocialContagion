@@ -95,6 +95,7 @@ public class SimulationManager {
 
     public void testHerdImmunity() {
         //100 networks and social contagion (per p, rge, omega) -- THEN -- 10,000 biological simulations for each network
+        SimulationSettings.getInstance().setMaxBioSims(10000);
         SimulationSettings.getInstance().setRewiringProbability(.1);
         SimulationSettings.getInstance().setRge(0.001);
         SimulationSettings.getInstance().setOmega(0.01);
@@ -103,7 +104,9 @@ public class SimulationManager {
         System.out.println("p@" + SimulationSettings.getInstance().getRewiringProbability() + " // " + "RGE@" + SimulationSettings.getInstance().getRge() + " // " + "Omega@" + SimulationSettings.getInstance().getOmega());
         System.out.println("epiFreq, threshold, negSent, coverage, simID");
 
-        for (int simCount = 0; simCount<100;simCount++) {
+        int maxHIsims = SimulationSettings.getInstance().getMaxBioSims();
+
+        for (int hiCounter = 0; hiCounter< maxHIsims;hiCounter++) {
             for (int thresh = 1; thresh<3; thresh++) {
                 SimulationSettings.getInstance().setT(thresh);
                 for (int i = 1; i < coverages; i++) {
@@ -113,7 +116,7 @@ public class SimulationManager {
                     Simulations sim = new Simulations();
                     sim.run();
                     epidemicFrequency[i] = sim.getNumberOfEpidemics();
-                    System.out.println(epidemicFrequency[i] + "," + thresh + "," + negSent + "," + vaccinationCoverage + "," + simCount);
+                    System.out.println(epidemicFrequency[i] + "," + thresh + "," + negSent + "," + vaccinationCoverage + "," + hiCounter);
                 }
             }
         }

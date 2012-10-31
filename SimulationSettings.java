@@ -13,6 +13,7 @@ public class SimulationSettings {
     private double infectionRate = 0.1;
     private double recoveryRate = 0.1;
     private int outbreakSizeToStopSimulation = Integer.MAX_VALUE;
+    private int maxBioSims = 50;
 
     public static SimulationSettings getInstance() {
         return ourInstance;
@@ -22,7 +23,15 @@ public class SimulationSettings {
     }
 
     public int getNumberOfPeople() {
-        return numberOfPeople;
+        return this.numberOfPeople;
+    }
+    
+    public int getMaxBioSims(){
+        return this.maxBioSims;
+    }
+
+    public void setMaxBioSims(int maxBioSims){
+        this.maxBioSims = maxBioSims;
     }
 
     public void setNumberOfPeople(int numberOfPeople) {
@@ -38,7 +47,7 @@ public class SimulationSettings {
     }
 
     public double getRewiringProbability() {
-        return rewiringProbability;
+        return this.rewiringProbability;
     }
 
     public void setRewiringProbability(double rewiringProbability) {
@@ -46,7 +55,7 @@ public class SimulationSettings {
     }
 
     public double getRge() {
-        return rge;
+        return this.rge;
     }
 
     public void setRge(double rge) {
@@ -54,7 +63,7 @@ public class SimulationSettings {
     }
 
     public int getT() {
-        return T;
+        return this.T;
     }
 
     public void setT(int t) {
@@ -70,7 +79,7 @@ public class SimulationSettings {
     }
 
     public double getMaxLevelofNegativeSentiment() {
-        return maxLevelOfNegativeSentiment;
+        return this.maxLevelOfNegativeSentiment;
     }
 
     public void getMaxLevelofNegativeSentiment(double maxLevelOfNegativeSentiment) {
@@ -78,7 +87,7 @@ public class SimulationSettings {
     }
 
     public double getInfectionRate() {
-        return infectionRate;
+        return this.infectionRate;
     }
 
     public void setInfectionRate(double infectionRate) {
@@ -86,7 +95,7 @@ public class SimulationSettings {
     }
 
     public double getRecoveryRate() {
-        return recoveryRate;
+        return this.recoveryRate;
     }
 
     public void setRecoveryRate(double recoveryRate) {

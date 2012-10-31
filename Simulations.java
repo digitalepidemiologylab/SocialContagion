@@ -39,6 +39,8 @@ public class Simulations {
     }
 
     public void run() {
+
+
         this.initGraph();
         this.runSocialTimesteps();
         this.vaccinate();
@@ -321,10 +323,11 @@ public class Simulations {
     }
 
     public void multiBioSims() {
+        int maxBioSims = SimulationSettings.getInstance().getMaxBioSims();
         outbreakSizeList = new ArrayList<Integer>();
         epidemicCounter = 0;
-        int simCount = 10000;
-        for (int i = 0; i < simCount; i++) {
+
+        for (int i = 0; i < maxBioSims; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();
             outbreakSizeList.add(this.getSimulatedOutbreakSize());
@@ -332,10 +335,10 @@ public class Simulations {
             if (this.outbreakSize > 25) epidemicCounter++;
         }
         int outbreakSum = 0;
-        for (int i = 0; i < simCount; i++) {
+        for (int i = 0; i < maxBioSims; i++) {
             outbreakSum = outbreakSum + outbreakSizeList.get(i);
         }
-        this.simulatedAverageOutbreak = outbreakSum/simCount;
+        this.simulatedAverageOutbreak = outbreakSum/maxBioSims;
     }
 
     public int getNumberOfClusters() {
