@@ -1,0 +1,14 @@
+LEGEND:
+
+NODES:
+blue    - adopted negative vaccination sentiment by social exposure only *or* social + general
+orange  - adopted negative vaccination sentiment by general exposure only
+
+EDGES:
+black      - negative vaccination sentiment DID NOT spread across this edge 
+gray       - negative vaccination sentiment DID NOT spread across this edge *AND* this edge was rewired during network initialization     
+blue       - negative vaccination sentiment spread across this edge
+light blue - negative vaccination sentiment spread across this edge *AND* this edge was rewired during network initialization
+        
+
+NOTE: Low degree nodes tend towards the center while high degree nodes tend toward the perimeter. More concretely, gravitational forces are inversely proportional to the degree of the node. 

@@ -1,0 +1,49 @@
+Manuscript: Complex social contagion makes networks more vulnerable to disease outbreaks
+arXiv.org : http://arxiv.org/abs/1211.0518
+Submitted : PNAS  - 10/30/12  (under editorial review as of 11/05/12)
+            arXiv - 11/01/12 
+
+Table of Contents:
+
+I.   Current code for all simulations [NOTE: root directory]
+
+II.  Submission Documents sans Cover Letter
+    
+     i.    arXiv submission review 
+     ii.   Fig1A-D (low-res)
+     iii.  Fig1A-D (hi-res)
+     iv.   Fig2A-E 
+     v.    Manuscript ONLY + Legend/Captions .DOCX
+     vi.   Manuscript ONLY + Legend/Captions .PDF
+     vii.  PNAS Length Estimator [NOTE:PRE-SUBMISSION]
+     vii.  Manuscript Review Copy (Figures/SI Included)
+     viii. FigS1 (SI Figure + Caption)
+     ix.   FigS2 (SI Figure + Caption)
+
+III. Sample (5) final-state output files tailored for Gephi 0.8.1-beta
+
+       N     = 500
+       k     = 5 
+       p     = 0.10
+       f(v-) = 0.40
+
+IV. Additional Files
+     
+     i.   Example (6) Gephi 0.8.1-beta images of the final-stage unvaccinated community network (before and after non-social edge removal) 
+            • Only unvaccinated individuals
+            • Node color delineates the cause of adoption
+            • Edge color delineates its participation in social contagion
+            • Edge color delineates whether it was rewired during network initialization
+ 
+            N      = 5000
+            k      = 10
+            p      = [0.0, 0.1, 0.9]
+            f(v-)  = 0.10  
+
+     ii.  Example of (4×2×2=16) heatmaps of the Arithmetic Mean of the Number of Susceptible Communities and Final Epidemic Sizes
+           
+            N      = 5000
+            k      = 10
+            p      = [0.0, 0.1, 0.5, 0.9]
+            f(v-)  = 0.10  
+

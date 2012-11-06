@@ -1,0 +1,13 @@
+Heatmaps:
+
+I.  Arithmetic Mean of the Number of Susceptible Communities (p = [0, 0.1, 0.5, 0.99])
+    - 100 simulated networks and opinion spreading processes per square
+
+II. Arithmetic Mean of the Final Epidemic Size (p = [0, 0.1, 0.5, 0.99])
+    - 100 simulated networks and opinion spreading processes per square
+    - 50 simulated biological epidemics per network and period of opinion formation
+
+Constants:
+- N     = 5000
+- k     = 10
+- f(v-) = 0.10
