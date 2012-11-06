@@ -29,7 +29,7 @@ III. Sample (5) final-state output files tailored for Gephi 0.8.1-beta
 
 IV. Additional Files
      
-     i.   Example (6) Gephi 0.8.1-beta images of the final-stage unvaccinated community network (before and after non-social edge removal) 
+     i.   Example (6) Gephi 0.8.1-beta images of the final-stage unvaccinated community            network (before and after non-social edge removal) 
             • Only unvaccinated individuals
             • Node color delineates the cause of adoption
             • Edge color delineates its participation in social contagion
@@ -40,7 +40,7 @@ IV. Additional Files
             p      = [0.0, 0.1, 0.9]
             f(v-)  = 0.10  
 
-     ii.  Example of (4×2×2=16) heatmaps of the Arithmetic Mean of the Number of Susceptible Communities and Final Epidemic Sizes
+     ii.  Example of (4×2×2=16) heatmaps of the Arithmetic Mean of the Number of            Susceptible Communities and Final Epidemic Sizes
            
             N      = 5000
             k      = 10
