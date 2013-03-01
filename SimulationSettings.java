@@ -5,15 +5,15 @@ public class SimulationSettings {
     private static SimulationSettings ourInstance = new SimulationSettings();
     private int numberOfPeople = 5000;
     private int k = 10;
-    private double rewiringProbability = 0.10;
+    private double rewiringProbability = 0.01;
     private double rge = 0.00001;
-    private int T = 2;
-    private double omega = 0.01;
-    private double maxLevelOfNegativeSentiment = 0.10;
+    private int T = 1;
+    private double omega = 0.0001;
+    private double maxLevelOfNegativeSentiment = 0.1;
     private double infectionRate = 0.1;
     private double recoveryRate = 0.1;
     private int outbreakSizeToStopSimulation = Integer.MAX_VALUE;
-    private int maxBioSims = 50;
+    private int maxBioSims = 10000;
 
     public static SimulationSettings getInstance() {
         return ourInstance;

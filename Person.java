@@ -17,6 +17,7 @@ public class Person {
     public static final int onlySOCIAL = 2;
     public static final int MIXED = 3;
     public static final int onlyGENERAL = 4 ;
+    private String infectedBy;
 
     public Person(String id, String vaccinationOpinion) {
         this.id = id;
@@ -25,6 +26,15 @@ public class Person {
         this.adoptStatus = Person.NONE;
         this.exposures = new ArrayList<Integer>();
         this.exposureTimestamps = new ArrayList<Integer>();
+        this.infectedBy = "nobody";
+    }
+
+    public String getInfector() {
+        return this.infectedBy;
+    }
+
+    public void setInfector(String infector) {
+        this.infectedBy = infector;
     }
 
     public String toString() {

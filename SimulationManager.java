@@ -10,7 +10,7 @@ public class SimulationManager {
         SimulationManager sm = new SimulationManager();
 
         // sm.localHeatmaps();
-         sm.testHerdImmunity();
+        // sm.testHerdImmunity();
         // sm.edgeTypes();
         // sm.degreeDIST();
 
@@ -20,6 +20,8 @@ public class SimulationManager {
 //        double rewire = Double.parseDouble(args[0]);
 //        int threshold = Integer.parseInt(args[1]);
 //        sm.theClusterHeatmaps(rewire,threshold);
+        sm.degreeDIST();
+        //sm.measureR0();
     }
 
     public void edgeTypes() {
@@ -52,11 +54,13 @@ public class SimulationManager {
     }
 
     public void degreeDIST() {
-        int threshold = 2;
+        int threshold = 1;
         SimulationSettings.getInstance().setT(threshold);
         double rewire = 0.01;
         SimulationSettings.getInstance().setRewiringProbability(rewire);
-        int simCount = 10;
+
+        System.out.println(SimulationSettings.getInstance().getRewiringProbability()+ "\t" + SimulationSettings.getInstance().getT());
+        int simCount = 5;
         int numberOfSusceptibles = 500;
         int steps = 20;
         int[][][] degreeDist = new int[steps][simCount][numberOfSusceptibles];
@@ -91,6 +95,74 @@ public class SimulationManager {
             }
         }
         out.close();
+    }
+
+    public void measureR0() {
+        SimulationSettings.getInstance().setMaxBioSims(10000);
+        SimulationSettings.getInstance().setRewiringProbability(0.5);
+        SimulationSettings.getInstance().setT(2);
+
+        int t = SimulationSettings.getInstance().getT();
+        double rewire = SimulationSettings.getInstance().getRewiringProbability();
+
+        System.out.println(SimulationSettings.getInstance().getRewiringProbability() + "\t" + SimulationSettings.getInstance().getT());
+
+        int steps = 20;
+        double omegaMax = 0.01;
+        double omegaStart = 0.0001;
+        int[][] R0 = new int[steps][10000];
+        int[][] degreeDist = new int[steps][500];
+        double omegaSteps = Math.pow(omegaMax/omegaStart, (1.0/(steps-1)));
+        for (int omegaCounter = 0; omegaCounter < steps; omegaCounter++) {
+            double omega = omegaStart * Math.pow(omegaSteps,omegaCounter);
+            SimulationSettings.getInstance().setOmega(omega);
+            System.out.println(omegaCounter);
+
+            Simulations sim = new Simulations();
+            sim.run();
+
+            R0[omegaCounter] = sim.getR0();
+            degreeDist[omegaCounter] = sim.recordDegreeDistribution();
+
+            for (int i = 0; i < 10000; i++) {
+                System.out.println(omegaCounter+"\t"+ R0[omegaCounter][i]);
+            }
+        }
+
+        //file print, input for data analysis
+        String filenameDeg = "degDIST " + "p" + rewire + "thresh" + String.format("%d", t) + "," + System.currentTimeMillis();;
+        PrintWriter outDeg = null;
+        try {
+            outDeg = new PrintWriter(new java.io.FileWriter(filenameDeg));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        outDeg.println("threshold" + "," + "omegaCounter" + "," + "personID" + "," + "degree" + "," + "rewire");
+        for (int omegaC=0; omegaC<steps; omegaC++) {
+            for (int person=0; person<500; person++) {
+                outDeg.println(t + "," + omegaC + "," + person + "," + degreeDist[omegaC][person] + "," + rewire);
+            }
+
+        }
+        outDeg.close();
+
+        //file print, input for data analysis
+        String filenameR0 = "measureR0 " + "p" + rewire + "thresh" + String.format("%d", t) + "," + System.currentTimeMillis();;
+        PrintWriter outR0 = null;
+        try {
+            outR0 = new PrintWriter(new java.io.FileWriter(filenameR0));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        outR0.println("threshold" + "," + "omegaCounter" + "," + "personID" + "," + "degree" + "," + "rewire");
+        for (int omegaC=0; omegaC<steps; omegaC++) {
+            for (int sim=0; sim<10000; sim++) {
+                outR0.println(t + "," + omegaC + "," + sim + "," + R0[omegaC][sim] + "," + rewire);
+            }
+
+        }
+        outR0.close();
+
     }
 
     public void testHerdImmunity() {
@@ -289,7 +361,7 @@ public class SimulationManager {
         SimulationSettings.getInstance().setT(threshold);
         SimulationSettings.getInstance().setRewiringProbability(rewire);
         SimulationSettings.getInstance().setOmega(0);
-        int simCount = 100;
+        int simCount = 10000;
         int numberOfSusceptibles = 500;
         int[][] degreeDist = new int[simCount][numberOfSusceptibles];
         System.out.println("threshold" + "," + "omegaCounter" + "," + "simID" + "," + "personID" + "," + "degree" + "," + "rewire");

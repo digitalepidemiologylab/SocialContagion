@@ -26,12 +26,14 @@ public class Simulations {
     double predictedOutbreakSize = 0;
     int[] clusterSizeSquared;
     int[] clusterSize;
+    int[] R0 = new int[10000];
     int clusterCount;
     ArrayList<Integer> outbreakSizeList;
     double simulatedAverageOutbreak = 0;
     int epidemicCounter = 0;
     int basic = 0;
     int social = 0;
+    String indexCaseID;
 
     public static void main(String[] args) {
         Simulations simulation = new Simulations();
@@ -39,13 +41,25 @@ public class Simulations {
     }
 
     public void run() {
-
-
         this.initGraph();
         this.runSocialTimesteps();
         this.vaccinate();
+        this.removeVaccinated();
+        this.recordDegreeDistribution();
         this.clusters();
         this.multiBioSims();
+    }
+
+    private void findIndexCase(int i) {
+        int R0 = 0;
+        for (Person person : this.g.getVertices()) {
+            if (person.getInfector() == indexCaseID) R0++;
+        }
+        this.R0[i] = R0;
+    }
+
+    public int[] getR0() {
+        return R0;
     }
 
     private void initGraph() {
@@ -217,8 +231,9 @@ public class Simulations {
         }
     }
 
-    private void resetNegativeOpinions() {
+    private void resetBiologicalSimulation() {
         for (int person = 0; person < SimulationSettings.getInstance().getNumberOfPeople(); person++) {
+            people[person].setInfector("nobody");
             if (people[person].getVaccinationOpinion().equals("-")) people[person].setHealthStatus(Person.SUSCEPTIBLE);
         }
     }
@@ -269,6 +284,7 @@ public class Simulations {
         Person indexCase;
         do {
             indexCase = this.people[this.random.nextInt(numberOfPeople)];
+            this.indexCaseID = indexCase.getID();
         }
         while (!indexCase.isSusceptible());
         this.infectPerson(indexCase);
@@ -294,14 +310,18 @@ public class Simulations {
         for (Person person:this.g.getVertices()) {
             if (!person.isSusceptible()) continue;
             int numberOfInfectedNeighbours = 0;
+            ArrayList potentialTransmitters = new ArrayList();
             for (Person neighbour:this.g.getNeighbors(person)) {
                 if (neighbour.isInfected()) {
+                    potentialTransmitters.add(neighbour);
                     numberOfInfectedNeighbours++;
                 }
             }
             double probabilityOfInfection = 1.0 - Math.pow(1.0 - infectionRate,numberOfInfectedNeighbours);
             if (this.random.nextDouble() < probabilityOfInfection) {
+                Person transmitter = (Person)potentialTransmitters.get(this.random.nextInt(potentialTransmitters.size()));
                 person.setTempValue(true);
+                person.setInfector(transmitter.getID());
             }
         }
         this.recovery();
@@ -330,8 +350,9 @@ public class Simulations {
         for (int i = 0; i < maxBioSims; i++) {
             this.outbreakSize = 0;
             this.runBiologicalTimesteps();
+            this.findIndexCase(i);
             outbreakSizeList.add(this.getSimulatedOutbreakSize());
-            resetNegativeOpinions();
+            resetBiologicalSimulation();
             if (this.outbreakSize > 25) epidemicCounter++;
         }
         int outbreakSum = 0;
